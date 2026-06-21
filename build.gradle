@@ -1,0 +1,275 @@
+import java.nio.file.Files
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'org.jetbrains.kotlin.jvm' version "${kotlin_version}"
+    id 'org.jetbrains.kotlin.plugin.serialization' version "${kotlin_version}"
+    id 'app.cash.sqldelight' version "${sqldelight_version}"
+    id 'net.neoforged.moddev' version '2.0.141'
+    id 'idea'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'ParchmentMC'
+        url = 'https://maven.parchmentmc.org'
+        content { includeGroup('org.parchmentmc.data') }
+    }
+    maven {
+        name = "Jared's maven"
+        url = 'https://maven.blamejared.com/'
+        content { includeGroup('mezz.jei') }
+    }
+    maven {
+        name = 'ModMaven'
+        url = 'https://modmaven.dev'
+        content { includeGroup('mezz.jei') }
+    }
+    maven {
+        name = 'Simple Voice Chat'
+        url = 'https://maven.maxhenkel.de/repository/public'
+        content { includeGroup('de.maxhenkel.voicechat') }
+    }
+}
+
+repositories.configureEach { repo ->
+    if (repo.hasProperty('url') && repo.url?.toString()?.contains('maven.neoforged.net')) {
+        content {
+            includeGroupByRegex('net\\.neoforged(\\..*)?')
+            includeGroupByRegex('net\\.minecraftforge(\\..*)?')
+            includeGroupByRegex('cpw\\.mods(\\..*)?')
+            includeGroupByRegex('org\\.spongepowered(\\..*)?')
+            includeGroupByRegex('io\\.codechicken(\\..*)?')
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = [
+                    'src/main/java',
+                    'src/client/java',
+                    "$buildDir/generated/main/java"
+            ]
+        }
+        resources {
+            srcDirs = [
+                    'src/main/resources',
+                    'src/client/resources',
+                    "$buildDir/generated/main/resources"
+            ]
+        }
+    }
+}
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+sqldelight {
+    databases {
+        create("BingoDatabase") {
+            packageName.set("me.jfenn.bingo.sql")
+            dialect("app.cash.sqldelight:sqlite-3-38-dialect:${sqldelight_version}")
+            deriveSchemaFromMigrations.set(true)
+            migrationOutputDirectory = layout.buildDirectory.dir("generated/sqldelight/migrations")
+        }
+    }
+}
+
+configurations {
+    localRuntime
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+configurations.configureEach {
+    resolutionStrategy.force 'org.slf4j:slf4j-api:2.0.9'
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:${kotlin_version}"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:${kotlinx_serialization_version}"
+
+    implementation "io.insert-koin:koin-core-jvm:${koin_version}"
+    implementation "io.insert-koin:koin-logger-slf4j:${koin_version}"
+
+    implementation 'com.zaxxer:HikariCP:7.0.2'
+    implementation "app.cash.sqldelight:jdbc-driver:${sqldelight_version}"
+    implementation "app.cash.sqldelight:runtime-jvm:${sqldelight_version}"
+    implementation 'org.xerial:sqlite-jdbc:3.50.3.0'
+
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+
+    compileOnly "de.maxhenkel.voicechat:voicechat-api:${voicechat_api_version}"
+
+    jarJar "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
+    jarJar "org.jetbrains.kotlin:kotlin-reflect:${kotlin_version}"
+    jarJar "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:${kotlinx_serialization_version}"
+    jarJar "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:${kotlinx_serialization_version}"
+    jarJar "io.insert-koin:koin-core-jvm:${koin_version}"
+    jarJar "io.insert-koin:koin-logger-slf4j:${koin_version}"
+    jarJar 'com.zaxxer:HikariCP:7.0.2'
+    jarJar "app.cash.sqldelight:jdbc-driver:${sqldelight_version}"
+    jarJar "app.cash.sqldelight:runtime-jvm:${sqldelight_version}"
+    jarJar 'org.xerial:sqlite-jdbc:3.50.3.0'
+}
+
+tasks.register('exbingoImages', Copy) {
+    from zipTree(file('images.zip'))
+    into layout.buildDirectory.dir('generated/main/resources/exbingo/images')
+}
+
+tasks.register('exbingoLangServerTranslations', Sync) {
+    from 'src/main/resources/assets/exbingo/lang'
+    include '*.json'
+    into layout.buildDirectory.dir('generated/main/resources/data/exbingo/lang')
+}
+
+tasks.register('exbingoLangFiles') {
+    def langDir = file('src/main/resources/assets/exbingo/lang')
+    def stringKeyFile = layout.buildDirectory.file('generated/main/java/me/jfenn/bingo/generated/StringKey.kt').get().asFile
+    inputs.files(fileTree(langDir))
+    outputs.file(stringKeyFile)
+    doLast {
+        def regex = "\"([\\W\\w]+)\":"
+        def nonEnumSafeRegex = "[^a-zA-Z0-9_]"
+        def langFile = new File(langDir, 'en_us.json').text
+        def enumEntries = langFile.lines()
+                .map {
+                    def match = it.find(regex)
+                    return match != null ? match.substring(1, match.length() - 2) : null
+                }
+                .filter { it != null }
+                .map {
+                    def enumStr = it.replaceAll("^bingo\\.", "")
+                    def enumName = enumStr[0].toUpperCase() +
+                            enumStr.substring(1)
+                                    .replaceAll(nonEnumSafeRegex, "_")
+                                    .replaceAll("_[a-z]") { "${it.toString().substring(1).toUpperCase()}" }
+                    return "    ${enumName}(\"${it}\"),"
+                }
+                .toList()
+                .join("\n")
+        def enumClass = "package me.jfenn.bingo.generated\n\nenum class StringKey(val key: String) {\n${enumEntries}\n}\n"
+        Files.createDirectories(stringKeyFile.toPath().parent)
+        stringKeyFile.write(enumClass)
+    }
+}
+
+tasks.register('exbingoConstants') {
+    def constantsKtFile = layout.buildDirectory.file('generated/main/java/me/jfenn/bingo/generated/Constants.kt').get().asFile
+    inputs.property('version', project.mod_version.toString())
+    outputs.file(constantsKtFile)
+    doLast {
+        def constantsText = "package me.jfenn.bingo.generated\n\nconst val BINGO_VERSION = \"${project.mod_version}\"\n"
+        Files.createDirectories(constantsKtFile.toPath().parent)
+        constantsKtFile.write(constantsText)
+    }
+}
+
+tasks.register('generateModMetadata', ProcessResources) {
+    def replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/main/templates'
+    into layout.buildDirectory.dir('generated/sources/modMetadata')
+}
+
+sourceSets.main.resources.srcDir tasks.named('generateModMetadata')
+neoForge.ideSyncTask tasks.named('generateModMetadata')
+
+tasks.processResources.configure {
+    dependsOn(tasks.exbingoImages)
+    dependsOn(tasks.exbingoLangServerTranslations)
+    dependsOn(tasks.exbingoLangFiles)
+    dependsOn(tasks.exbingoConstants)
+}
+
+tasks.jar.configure {
+    dependsOn(tasks.named('jarJar'))
+    from(tasks.named('jarJar').flatMap { it.outputDirectory })
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    dependsOn(tasks.exbingoLangFiles)
+    dependsOn(tasks.exbingoConstants)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    dependsOn(tasks.exbingoLangFiles)
+    dependsOn(tasks.exbingoConstants)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    compilerOptions {
+        freeCompilerArgs.add("-opt-in=me.jfenn.bingo.api.annotations.BingoInternalApi")
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = false
+    }
+}

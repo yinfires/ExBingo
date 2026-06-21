@@ -1,0 +1,39 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            url = 'https://maven.neoforged.net/releases'
+            content {
+                includeGroupByRegex('net\\.neoforged(\\..*)?')
+                includeGroupByRegex('net\\.minecraftforge(\\..*)?')
+                includeGroupByRegex('cpw\\.mods(\\..*)?')
+                includeGroupByRegex('org\\.spongepowered(\\..*)?')
+                includeGroupByRegex('io\\.codechicken(\\..*)?')
+            }
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven { url = 'https://maven.neoforged.net/releases' }
+        maven {
+            name = "Jared's maven"
+            url = 'https://maven.blamejared.com/'
+            content { includeGroup('mezz.jei') }
+        }
+        maven {
+            name = 'ModMaven'
+            url = 'https://modmaven.dev'
+            content { includeGroup('mezz.jei') }
+        }
+        maven {
+            name = 'Simple Voice Chat'
+            url = 'https://maven.maxhenkel.de/repository/public'
+            content { includeGroup('de.maxhenkel.voicechat') }
+        }
+    }
+}
+
+rootProject.name = 'ExBingo'

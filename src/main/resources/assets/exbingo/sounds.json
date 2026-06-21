@@ -1,0 +1,50 @@
+﻿{
+  "item_scored": {
+    "subtitle": "bingo.sound.item_scored",
+    "sounds": [
+      "exbingo:item_scored"
+    ]
+  },
+  "item_lost": {
+    "subtitle": "bingo.sound.item_lost",
+    "sounds": [
+      "exbingo:item_lost"
+    ]
+  },
+  "opponent_scored": {
+    "subtitle": "bingo.sound.opponent_scored",
+    "sounds": [
+      "exbingo:opponent_scored"
+    ]
+  },
+  "game_won": {
+    "subtitle": "bingo.sound.game_won",
+    "sounds": [
+      "exbingo:game_won"
+    ]
+  },
+  "game_lost": {
+    "subtitle": "bingo.sound.game_lost",
+    "sounds": [
+      "exbingo:game_lost"
+    ]
+  },
+  "timer_tick": {
+    "subtitle": "bingo.sound.timer_tick",
+    "sounds": [
+      "exbingo:timer_tick"
+    ]
+  },
+  "start_countdown": {
+    "subtitle": "bingo.sound.start_countdown",
+    "sounds": [
+      "exbingo:start_countdown"
+    ]
+  },
+  "start_release": {
+    "subtitle": "bingo.sound.start_release",
+    "sounds": [
+      "exbingo:start_release"
+    ]
+  }
+}

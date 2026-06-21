@@ -1,0 +1,11 @@
+.gradle/
+build/
+run/
+out/
+*.iml
+*.log
+
+# Local agent notes and crash-debugging docs
+AGENTS.md
+agents.md
+docs/
