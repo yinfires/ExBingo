@@ -206,7 +206,7 @@ class ItemStackFactory(
             val components = mutableMapOf<String, String?>()
 
             for (component in stack.components) {
-                val id = BuiltInRegistries.DATA_COMPONENT_TYPE.getId(component.type()) ?: continue
+                val id = BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(component.type()) ?: continue
 
                 val jsonElement = try {
                     component

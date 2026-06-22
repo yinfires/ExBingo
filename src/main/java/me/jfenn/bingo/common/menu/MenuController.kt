@@ -1,4 +1,4 @@
-﻿package me.jfenn.bingo.common.menu
+package me.jfenn.bingo.common.menu
 
 import me.jfenn.bingo.common.LOBBY_WORLD_ID
 import me.jfenn.bingo.common.Sounds

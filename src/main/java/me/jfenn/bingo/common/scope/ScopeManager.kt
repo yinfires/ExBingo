@@ -1,4 +1,4 @@
-﻿package me.jfenn.bingo.common.scope
+package me.jfenn.bingo.common.scope
 
 import me.jfenn.bingo.api.BingoApi
 import me.jfenn.bingo.api.BingoEvents

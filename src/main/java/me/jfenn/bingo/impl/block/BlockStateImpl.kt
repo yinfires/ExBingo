@@ -17,7 +17,7 @@ open class BlockStateImpl(
         BuiltInRegistries.BLOCK.wrapAsHolder(blockState.block)
     )
 
-    override val identifier: String get() = BuiltInRegistries.BLOCK.getId(blockState.block).toString()
+    override val identifier: String get() = BuiltInRegistries.BLOCK.getKey(blockState.block).toString()
 
     override fun isEmpty(world: IServerWorld, pos: BlockPosition): Boolean {
         return blockState.isAir || blockState.getCollisionShape(world.world, pos.toBlockPos()).isEmpty
