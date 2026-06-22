@@ -7,10 +7,11 @@ import me.jfenn.bingo.common.datapack.LobbyWorldService
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.ConfirmScreen
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen
-import net.minecraft.world.level.WorldDataConfiguration
-import net.minecraft.world.level.DataPackConfig
 import net.minecraft.network.chat.contents.TranslatableContents
+import net.minecraft.world.level.DataPackConfig
+import net.minecraft.world.level.WorldDataConfiguration
 import net.neoforged.neoforge.client.event.ScreenEvent
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
 import net.neoforged.neoforge.common.NeoForge
 import org.slf4j.Logger
 
@@ -26,6 +27,16 @@ class BingoWorldController(
     }
 
     init {
+        NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingIn::class.java) {
+            worldState.state = null
+            worldState.isApplyingLobbyDataPack = false
+        }
+
+        NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut::class.java) {
+            worldState.state = null
+            worldState.isApplyingLobbyDataPack = false
+        }
+
         NeoForge.EVENT_BUS.addListener(ScreenEvent.Init.Pre::class.java) { event ->
             val screen = event.screen
             if (screen is CreateWorldScreen && worldState.state == ScreenState.CreateBingoWorld) {
@@ -92,24 +103,13 @@ class BingoWorldController(
             }
 
             if (screen is CreateWorldScreen && state == ScreenState.OpenBingoWorld) {
-                // Once the world creation screen is reached, immediately press the
-                // create world button
-
-                val createWorldButton = event.listenersList
-                    .filterIsInstance<Button>()
-                    .find {
-                        val content = it.message.contents as? TranslatableContents
-                        content?.key == "selectWorld.create"
-                    }
-
-                worldState.state = ScreenState.ConfirmExperimentalFeatures
-                createWorldButton?.onClick(0.0, 0.0)
-                    ?: log.error("Error: could not find create world button")
+                // Once the data pack has been applied, immediately create the world.
+                createBingoWorld(screen)
 
                 return@addListener
             }
 
-            if (screen is ConfirmScreen && state == ScreenState.ConfirmExperimentalFeatures) {
+            if (screen is ConfirmScreen && (state == ScreenState.OpenBingoWorld || state == ScreenState.ConfirmExperimentalFeatures)) {
                 // If there is a prompt to confirm the experimental datapack usage,
                 // click yes automatically
                 log.warn("Bypassing experimental warnings for a BINGO world")
@@ -121,10 +121,17 @@ class BingoWorldController(
                         content?.key == "gui.yes"
                     }
 
+                worldState.state = null
                 confirmButton?.onClick(0.0, 0.0)
                     ?: log.error("Error: could not find the experimental world features confirm button")
             }
         }
+    }
+
+    private fun createBingoWorld(screen: CreateWorldScreen) {
+        worldState.state = ScreenState.ConfirmExperimentalFeatures
+        log.info("[BingoWorldController] Creating BINGO world after applying lobby datapack")
+        screen.accessor.invokeOnCreate()
     }
 
 }

@@ -1,4 +1,4 @@
-package me.jfenn.bingo.common.menu
+﻿package me.jfenn.bingo.common.menu
 
 import me.jfenn.bingo.common.LOBBY_WORLD_ID
 import me.jfenn.bingo.common.Sounds
@@ -22,6 +22,7 @@ import me.jfenn.bingo.generated.StringKey
 import me.jfenn.bingo.platform.*
 import me.jfenn.bingo.platform.block.BlockPosition
 import me.jfenn.bingo.platform.block.IWallSignBlockState
+import me.jfenn.bingo.platform.world.IChunkHeightmap
 import me.jfenn.bingo.platform.event.IEventBus
 import me.jfenn.bingo.platform.event.model.EntityLoadEvent
 import me.jfenn.bingo.platform.event.model.TickEvent
@@ -30,8 +31,8 @@ import net.minecraft.world.level.block.PlayerHeadBlock
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.entity.player.Player
-import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.chunk.status.ChunkStatus
 import org.joml.Matrix4d
 import org.joml.Vector3d
@@ -74,6 +75,9 @@ internal class MenuController(
         var spawnPosition: Pair<BlockPosition, Float>? = null
         var menuPosition: Matrix4d? = null
         var teamPositions: Map<BingoTeamKey, BlockPosition>? = null
+        var menuPositionKnown: Boolean = false
+        var teamPositionsKnown: Boolean = false
+        var spawnPositionKnown: Boolean = false
     }
 
     init {
@@ -177,6 +181,9 @@ internal class MenuController(
             Cache.spawnPosition = null
             Cache.menuPosition = null
             Cache.teamPositions = null
+            Cache.spawnPositionKnown = false
+            Cache.menuPositionKnown = false
+            Cache.teamPositionsKnown = false
             Cache.lobbyWorldModified = lobbyWorldModified
         }
 
@@ -212,37 +219,32 @@ internal class MenuController(
         }
     }
 
-    private fun everyChunkIndex(margin: Int = 0) = sequence {
-        for (x in margin until 16 - margin) {
-            for (z in margin until 16 - margin) {
-                yield(x + z * 16)
-            }
-        }
-    }
-
     private fun searchLobbyBlocks() = sequence {
-        val chunkIndices = arrayOf(0, 1, -1, 2, -2)
         val lobbyWorld = server.lobbyWorld ?: return@sequence
+        val lobbyWorldImpl = serverWorldFactory.forWorld(lobbyWorld)
         val bottomY = lobbyWorld.minBuildHeight
+        val chunkSearchOrder = listOf(0, 1, -1, 2, -2)
 
-        for (chunkX in chunkIndices) for (chunkZ in chunkIndices) {
-            val chunk = lobbyWorld.getChunk(chunkX, chunkZ, ChunkStatus.FULL)
-
-            for (i in everyChunkIndex()) {
-                val x = i % 16
-                val z = i / 16
-                val height = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) + 3
-
-                for (y in (bottomY..height).reversed()) {
-                    val blockPos = chunk.pos.getBlockAt(x, y, z)
-                    yield(BlockPosition.fromBlockPos(blockPos))
+        for (chunkX in chunkSearchOrder) {
+            for (chunkZ in chunkSearchOrder) {
+                val chunk = lobbyWorldImpl.getChunkSync(chunkX to chunkZ)
+                val heightmap = chunk.getHeightmap(IChunkHeightmap.Type.MOTION_BLOCKING_NO_LEAVES)
+                for (localX in 0 until 16) {
+                    for (localZ in 0 until 16) {
+                        val height = heightmap.get(localX, localZ) + 3
+                        for (y in height downTo bottomY) {
+                            yield(BlockPosition(chunkX * 16 + localX, y, chunkZ * 16 + localZ))
+                        }
+                    }
                 }
             }
         }
     }
 
     private fun getMenuPosition(lobbyWorld: ServerLevel): Matrix4d? = run {
-        Cache.menuPosition?.let { return@run it }
+        if (Cache.menuPositionKnown) {
+            return@run Cache.menuPosition
+        }
 
         log.measureTime("[MenuController] Locating menu position...") {
             val lobbyWorldImpl = serverWorldFactory.forWorld(lobbyWorld)
@@ -264,6 +266,7 @@ internal class MenuController(
                 val centerState = blocks.values.first()
 
                 if (isMenuPos && centerState != null) {
+                    log.info("[MenuController] Found lobby menu wall signs at {}", pos)
                     val directionVec = centerState.facing
                     val yaw = atan2(directionVec.x.toDouble(), directionVec.z.toDouble())
 
@@ -279,6 +282,7 @@ internal class MenuController(
         }
     }.also { menuPosition ->
         Cache.menuPosition = menuPosition
+        Cache.menuPositionKnown = true
         log.info("Set menu position to ${menuPosition?.transform(Vector4d())}")
 
         if (menuPosition != null) {
@@ -299,7 +303,9 @@ internal class MenuController(
     }
 
     private fun getLobbySpawnPosition(lobbyWorld: ServerLevel): Pair<BlockPosition, Float> = run {
-        Cache.spawnPosition?.let { return@run it }
+        if (Cache.spawnPositionKnown) {
+            return@run Cache.spawnPosition ?: (BlockPosition(0, lobbyWorld.minBuildHeight, 0) to 180f)
+        }
 
         log.measureTime("[MenuController] Locating spawn position...") {
             // If a player head is in the lobby structure, use it as the player spawn
@@ -307,6 +313,7 @@ internal class MenuController(
                 val blockState = lobbyWorld.getBlockState(pos.toBlockPos())
                 val isPlayerHead = blockState.block == Blocks.PLAYER_HEAD
                 if (isPlayerHead) {
+                    log.info("[MenuController] Found lobby spawn head at {}", pos)
                     val rotation = blockState.getValue(PlayerHeadBlock.ROTATION)
                     val yaw = (rotation - 8).toFloat() * 360f / 16f
                     return@measureTime Pair(pos, yaw)
@@ -314,13 +321,15 @@ internal class MenuController(
             }
 
             // otherwise, find the highest block at 0,0
-            val chunk = lobbyWorld.getChunk(0, 0, ChunkStatus.FULL)
-            val spawnY = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0)
+            val chunk = serverWorldFactory.forWorld(lobbyWorld).getChunkSync(0 to 0)
+            val spawnY = chunk.getHeightmap(IChunkHeightmap.Type.MOTION_BLOCKING_NO_LEAVES).get(0, 0)
 
+            log.info("[MenuController] Falling back to world origin spawn at 0,{},0", spawnY)
             BlockPosition(0, spawnY, 0) to 180f
         }
     }.also {
         Cache.spawnPosition = it
+        Cache.spawnPositionKnown = true
         log.info("Set lobby spawnpoint to $it")
 
         taskExecutor.execute {
@@ -332,7 +341,9 @@ internal class MenuController(
     private fun spawnTeamEntities(lobbyWorld: ServerLevel) {
         val lobbyWorldImpl: IServerWorld = serverWorldFactory.forWorld(lobbyWorld)
 
-        val teamPositions = Cache.teamPositions ?: log.measureTime("[MenuController] Locating team entities...") {
+        val teamPositions = if (Cache.teamPositionsKnown) {
+            Cache.teamPositions ?: emptyMap()
+        } else log.measureTime("[MenuController] Locating team entities...") {
             val ret = mutableMapOf<BingoTeamKey, BlockPosition>()
             // Search for team join entities
             for ((x, y, z) in searchLobbyBlocks()) {
@@ -347,9 +358,17 @@ internal class MenuController(
                     ?: continue
 
                 ret[teamId] = blockPos
+                log.info("[MenuController] Found lobby team picker for {} at {}", teamId.id, blockPos)
             }
 
             ret
+        }.also {
+            Cache.teamPositions = it
+            Cache.teamPositionsKnown = true
+        }
+
+        if (teamPositions.isEmpty()) {
+            log.warn("[MenuController] No lobby team positions were found. Team picker entities will not be spawned. Expected colored carpets above lodestone blocks in a 48x48 box around the lobby origin.")
         }
 
         for ((teamKey, blockPos) in teamPositions) {
@@ -363,6 +382,17 @@ internal class MenuController(
         }
     }
 
+    private fun ServerLevel.loadChunkAt(position: Vector3d) {
+        val chunkPos = ChunkPos(
+            BlockPos(
+                kotlin.math.floor(position.x).toInt(),
+                0,
+                kotlin.math.floor(position.z).toInt(),
+            )
+        )
+        getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL)
+    }
+
     private fun spawnTeamEntity(
         lobbyWorld: ServerLevel,
         position: Vector3d,
@@ -370,7 +400,9 @@ internal class MenuController(
         teamPreset: BingoTeamPreset,
         instanceTag: String,
     ) {
-        entityManager.createEntity(EntityType.TEXT_DISPLAY, lobbyWorld)
+        lobbyWorld.loadChunkAt(position)
+
+        val nameEntity = entityManager.createEntity(EntityType.TEXT_DISPLAY, lobbyWorld)
             .apply {
                 pos = position + Vector3d(0.0, 1.5, 0.0)
                 value = BingoTeam.fromPreset(teamKey, teamPreset)
@@ -384,9 +416,15 @@ internal class MenuController(
                 shadow = true
             }
             .also { it.commandTags += instanceTag }
-            .also { entityManager.spawnEntity(lobbyWorld, it) }
+            .also {
+                if (!entityManager.spawnEntity(lobbyWorld, it)) {
+                    log.warn("[MenuController] Unable to spawn team name entity for ${teamKey.id} at ${it.pos}")
+                    it.discard()
+                    return
+                }
+            }
 
-        entityManager.createEntity(EntityType.TEXT_DISPLAY, lobbyWorld)
+        val hintEntity = entityManager.createEntity(EntityType.TEXT_DISPLAY, lobbyWorld)
             .apply {
                 pos = position + Vector3d(0.0, 1.0, 0.0)
                 value = text.string(StringKey.LobbyClickToJoin)
@@ -394,7 +432,14 @@ internal class MenuController(
                 alignment = ITextDisplayEntity.TextAlignment.CENTER
             }
             .also { it.commandTags += instanceTag }
-            .also { entityManager.spawnEntity(lobbyWorld, it) }
+            .also {
+                if (!entityManager.spawnEntity(lobbyWorld, it)) {
+                    log.warn("[MenuController] Unable to spawn team hint entity for ${teamKey.id} at ${it.pos}")
+                    it.discard()
+                    nameEntity.discard()
+                    return
+                }
+            }
 
         val interactionListenerEntity = entityManager.createEntity(EntityType.INTERACTION, lobbyWorld)
             .apply {
@@ -403,7 +448,17 @@ internal class MenuController(
                 height = 4f
             }
             .also { it.commandTags += instanceTag }
-            .also { entityManager.spawnEntity(lobbyWorld, it) }
+            .also {
+                if (!entityManager.spawnEntity(lobbyWorld, it)) {
+                    log.warn("[MenuController] Unable to spawn team interaction entity for ${teamKey.id} at ${it.pos}")
+                    it.discard()
+                    nameEntity.discard()
+                    hintEntity.discard()
+                    return
+                }
+            }
+
+        log.info("[MenuController] Spawned lobby team picker for {} at {}", teamKey.id, position)
 
         interactionEntityEvents.onInteract(interactionListenerEntity) { player ->
             val team = BingoTeam.fromPreset(teamKey, teamPreset)

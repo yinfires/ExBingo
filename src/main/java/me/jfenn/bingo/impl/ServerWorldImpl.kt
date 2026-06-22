@@ -111,9 +111,10 @@ class ServerWorldFactory(
             tickKeepAlive()
 
             log.measureTime("[Reset] Loading new worlds...") {
-                val levelPropertiesAccessor = (server.worldData as PrimaryLevelData) as LevelPropertiesAccessor
-                levelPropertiesAccessor.setDragonFight(EndDragonFight.Data.DEFAULT)
-                levelPropertiesAccessor.generatorOptions = levelPropertiesAccessor.generatorOptions.withSeed(OptionalLong.of(seed))
+                val levelData = server.worldData as PrimaryLevelData
+                val levelPropertiesAccessor = levelData as LevelPropertiesAccessor
+                levelData.setEndDragonFightData(EndDragonFight.Data.DEFAULT)
+                levelPropertiesAccessor.worldOptions = levelPropertiesAccessor.worldOptions.withSeed(OptionalLong.of(seed))
         server.accessor.invokeLoadLevel()
             }
             tickKeepAlive()

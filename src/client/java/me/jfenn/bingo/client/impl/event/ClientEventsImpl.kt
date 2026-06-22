@@ -43,7 +43,7 @@ class ClientEventsImpl(
                         is TitleScreen -> ScreenType.TitleScreen
                         else -> ScreenType.Other
                     },
-                    screen = ScreenHelperImpl(event.screen),
+                    screen = ScreenHelperImpl(event.screen, event::addListener),
                 )
             )
         }

@@ -6,6 +6,6 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(ServerChunkCache.class)
 public interface ServerChunkManagerAccessor {
-    @Invoker("updateChunks")
+    @Invoker("runDistanceManagerUpdates")
     boolean invokeUpdateChunks();
 }

@@ -19,6 +19,7 @@ import org.lwjgl.glfw.GLFW
 
 open class ScreenHelperImpl(
     override val screen: Screen,
+    private val addListener: ((GuiEventListener) -> Unit)? = null,
 ) : IScreenHelper {
     override val width get() = screen.width
     override val height get() = screen.height
@@ -33,7 +34,11 @@ open class ScreenHelperImpl(
     override fun addButton(button: IButton) {
         require(button is ButtonImpl)
         val mutableScreen = screen as? ScreenImpl
-        mutableScreen?.bingoAddDrawableChild(button.button)
+        if (mutableScreen != null) {
+            mutableScreen.bingoAddDrawableChild(button.button)
+        } else {
+            addListener?.invoke(button.button)
+        }
     }
 
     override fun close() {

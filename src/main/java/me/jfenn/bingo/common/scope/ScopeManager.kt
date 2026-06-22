@@ -1,4 +1,4 @@
-package me.jfenn.bingo.common.scope
+﻿package me.jfenn.bingo.common.scope
 
 import me.jfenn.bingo.api.BingoApi
 import me.jfenn.bingo.api.BingoEvents
@@ -46,8 +46,8 @@ class ScopeManager(
     init {
         eventBus.register(ServerEvent.Started) { (server) ->
             val isLobbyMode = server.lobbyWorld != null
-            if (isLobbyMode) log.info("[ScopeManager] $MOD_ID.zip datapack exists - starting with isLobbyMode=true")
-            else log.info("[ScopeManager] $MOD_ID.zip datapack does not exist - starting with isLobbyMode=false")
+            if (isLobbyMode) log.info("[ScopeManager] bingo.zip datapack exists - starting with isLobbyMode=true")
+            else log.info("[ScopeManager] bingo.zip datapack does not exist - starting with isLobbyMode=false")
 
             log.info("[ScopeManager] Starting server scope...")
             val ctx = BingoScope(server)

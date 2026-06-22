@@ -6,10 +6,12 @@ import me.jfenn.bingo.platform.IEntityManager
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.chunk.status.ChunkStatus
 import org.joml.Matrix4d
 import org.joml.Vector3d
 import org.koin.core.scope.Scope
 import org.slf4j.Logger
+import java.util.*
 import kotlin.math.roundToInt
 
 internal class MenuInstance(
@@ -21,6 +23,9 @@ internal class MenuInstance(
     private val matrix: Matrix4d,
     private val instanceTag: String,
 ) {
+
+    private val failedSpawnAttempts = mutableMapOf<UUID, Int>()
+    private val loggedSpawnFailures = mutableSetOf<UUID>()
 
     private val menuComponent = component(koinScope) {
         val translation = Vector3d(0.5, 2.0, 0.05)
@@ -38,6 +43,7 @@ internal class MenuInstance(
     }
 
     fun markDirty() {
+        failedSpawnAttempts.clear()
         menuComponent.markDirty()
     }
 
@@ -67,6 +73,11 @@ internal class MenuInstance(
         yaw = yawDegrees
     }
 
+    private fun loadChunkFor(entity: IEntity) {
+        val chunkPos = ChunkPos(BlockPos(entity.pos.x.toInt(), 0, entity.pos.z.toInt()))
+        world.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL)
+    }
+
     fun <T: IEntity> spawn(info: MenuEntityHandle<T>): T? {
         @Suppress("UNCHECKED_CAST")
         var entity: T? = entityManager.getEntity(world, info.id)
@@ -80,23 +91,23 @@ internal class MenuInstance(
             entity.resetPos()
             info.init.invoke(entity)
             entity.transformPos()
-
-            val chunkPos = ChunkPos.asLong(BlockPos(entity.pos.x.toInt(), 0, entity.pos.z.toInt()))
-            val isLoaded = world.chunkSource.hasChunk(ChunkPos.getX(chunkPos), ChunkPos.getZ(chunkPos))
-            if (!isLoaded) {
-                entity.discard()
-                return null
-            }
+            loadChunkFor(entity)
 
             // Try to spawn the entity into the world...
             val isSuccess = entityManager.spawnEntity(world, entity)
             // If the entity cannot be spawned, discard it and return null
-            // (the MenuComponent should then be marked dirty, and will try again on the next tick)
+            // (the MenuComponent will retry with backoff instead of trying every tick)
             if (!isSuccess) {
-                log.debug("Unable to spawn {} menu entity - discarding...", info.type)
+                if (loggedSpawnFailures.add(info.id)) {
+                    log.warn("Unable to spawn {} menu entity at {} - will retry with backoff", info.type, entity.pos)
+                }
                 entity.discard()
+                failedSpawnAttempts[info.id] = (failedSpawnAttempts[info.id] ?: 0) + 1
                 return null
             }
+
+            failedSpawnAttempts.remove(info.id)
+            loggedSpawnFailures.remove(info.id)
         } else {
             entity.commandTags = setOf(instanceTag)
             entity.resetPos()
@@ -111,6 +122,15 @@ internal class MenuInstance(
 
         info.onUpdate(entity)
         return entity
+    }
+
+    fun retryDelayTicks(): Int {
+        val attempts = failedSpawnAttempts.values.maxOrNull() ?: return 1
+        return when {
+            attempts <= 2 -> 10
+            attempts <= 5 -> 40
+            else -> 100
+        }
     }
 
     fun despawn(info: MenuEntityHandle<*>) {

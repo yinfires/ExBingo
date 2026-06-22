@@ -43,7 +43,11 @@ public abstract class PlayerManagerMixin {
     @Unique
     private final Logger log = LoggerFactory.getLogger(PlayerManagerMixin.class);
 
-    @Inject(at = @At(value = "HEAD"), method = "sendToAround", cancellable = true)
+    @Inject(
+            at = @At(value = "HEAD"),
+            method = "broadcast(Lnet/minecraft/world/entity/player/Player;DDDDLnet/minecraft/resources/ResourceKey;Lnet/minecraft/network/protocol/Packet;)V",
+            cancellable = true
+    )
     private void sendToAround(@Nullable Player player, double x, double y, double z, double distance, ResourceKey<Level> worldKey, Packet<?> packet, CallbackInfo ci) {
         // If the game is in PREGAME, prevent chaos by cancelling sound packets while in the lobby
         if (packet instanceof ClientboundSoundPacket && PlayerManagerMixinHelper.Companion.shouldPreventLobbyChaos()) {

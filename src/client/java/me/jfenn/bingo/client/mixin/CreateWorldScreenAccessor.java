@@ -20,4 +20,6 @@ public interface CreateWorldScreenAccessor {
     void invokeTryApplyNewDataPacks(PackRepository dataPackManager, boolean fromPackScreen, Consumer<WorldDataConfiguration> configurationSetter);
     @Invoker("applyNewPackConfig")
     void invokeApplyNewPackConfig(PackRepository dataPackManager, WorldDataConfiguration dataConfiguration, Consumer<WorldDataConfiguration> configurationSetter);
+    @Invoker("onCreate")
+    void invokeOnCreate();
 }

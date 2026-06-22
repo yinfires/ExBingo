@@ -85,9 +85,11 @@ internal open class MenuComponent(
     val onDespawn = EventListener<Unit>()
 
     private var isDirty = true
+    private var retryTicks = 0
 
     fun markDirty() {
         isDirty = true
+        retryTicks = 0
     }
 
     fun <T> propertyRef(ref: KMutableProperty0<T>): MutableProperty<T> {
@@ -121,6 +123,14 @@ internal open class MenuComponent(
 
     fun tick(tracker: MenuInstance) {
         onTick.invoke(tracker)
+        if (!isDirty)
+            return
+
+        if (retryTicks > 0) {
+            retryTicks--
+            return
+        }
+
         if (isDirty)
             spawn(tracker)
     }
@@ -132,6 +142,7 @@ internal open class MenuComponent(
             tracker.spawn(it)
         }
         isDirty = spawned.any { it == null }
+        retryTicks = if (isDirty) tracker.retryDelayTicks() else 0
     }
 
     fun despawn() {

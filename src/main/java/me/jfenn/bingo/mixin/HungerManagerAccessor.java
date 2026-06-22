@@ -7,8 +7,8 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(FoodData.class)
 public interface HungerManagerAccessor {
-    @Accessor("exhaustion")
+    @Accessor("exhaustionLevel")
     float getExhaustion();
-    @Mutable @Accessor("exhaustion")
+    @Mutable @Accessor("exhaustionLevel")
     void setExhaustion(float exhaustion);
 }

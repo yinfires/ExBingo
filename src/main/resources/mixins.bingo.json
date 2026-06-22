@@ -18,7 +18,6 @@
     "PlayerManagerMixin",
     "RaidManagerAccessor",
     "ServerBossBarMixin",
-    "ServerChunkLoadingManagerAccessor",
     "ServerChunkManagerAccessor",
     "ServerChunkManagerMixin",
     "ServerEntityManagerMixin",

@@ -7,7 +7,6 @@ import me.jfenn.bingo.platform.item.IItemStackFactory
 import me.jfenn.bingo.platform.packet.IServerPacketHandlerC2S
 import me.jfenn.bingo.platform.packet.PacketConverter
 import me.jfenn.bingo.platform.packet.ServerPacket
-import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.PacketFlow
@@ -121,13 +120,27 @@ object NeoForgePacketRegistry {
 
     fun registerPayloads(event: RegisterPayloadHandlersEvent) {
         val registrar = event.registrar(MOD_ID_BINGO).optional()
-        c2s.values.forEach {
+        val bidirectional = mutableSetOf<ResourceLocation>()
+
+        c2s.forEach { (id, registration) ->
             @Suppress("UNCHECKED_CAST")
-            (it as PacketRegistration<Any>).registerC2S(registrar)
+            val serverbound = registration as PacketRegistration<Any>
+            @Suppress("UNCHECKED_CAST")
+            val clientbound = s2c[id] as? PacketRegistration<Any>
+
+            if (clientbound != null) {
+                serverbound.withClientHandlerFrom(clientbound).registerBidirectional(registrar)
+                bidirectional += id
+            } else {
+                serverbound.registerC2S(registrar)
+            }
         }
-        s2c.values.forEach {
-            @Suppress("UNCHECKED_CAST")
-            (it as PacketRegistration<Any>).registerS2C(registrar)
+
+        s2c.forEach { (id, registration) ->
+            if (id !in bidirectional) {
+                @Suppress("UNCHECKED_CAST")
+                (registration as PacketRegistration<Any>).registerS2C(registrar)
+            }
         }
     }
 
@@ -155,6 +168,7 @@ object NeoForgePacketRegistry {
 
         fun withServerHandler(handler: (BingoPayload<T>, IPayloadContext) -> Unit) = copy(serverHandler = handler)
         fun withClientHandler(handler: (BingoPayload<T>, IPayloadContext) -> Unit) = copy(clientHandler = handler)
+        fun withClientHandlerFrom(registration: PacketRegistration<T>) = copy(clientHandler = registration.clientHandler)
 
         fun registerC2S(registrar: net.neoforged.neoforge.network.registration.PayloadRegistrar) {
             registrar.playToServer(type, codec) { payload, context ->
@@ -165,6 +179,15 @@ object NeoForgePacketRegistry {
         fun registerS2C(registrar: net.neoforged.neoforge.network.registration.PayloadRegistrar) {
             registrar.playToClient(type, codec) { payload, context ->
                 clientHandler?.invoke(payload, context)
+            }
+        }
+
+        fun registerBidirectional(registrar: net.neoforged.neoforge.network.registration.PayloadRegistrar) {
+            registrar.playBidirectional(type, codec) { payload, context ->
+                when (context.flow()) {
+                    PacketFlow.SERVERBOUND -> serverHandler?.invoke(payload, context)
+                    PacketFlow.CLIENTBOUND -> clientHandler?.invoke(payload, context)
+                }
             }
         }
     }

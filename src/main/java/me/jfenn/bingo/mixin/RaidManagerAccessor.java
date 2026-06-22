@@ -9,6 +9,6 @@ import java.util.Map;
 
 @Mixin(Raids.class)
 public interface RaidManagerAccessor {
-    @Accessor("raids")
+    @Accessor("raidMap")
     Map<Integer, Raid> getRaids();
 }

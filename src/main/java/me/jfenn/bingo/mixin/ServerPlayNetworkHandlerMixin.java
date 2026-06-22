@@ -1,6 +1,7 @@
 package me.jfenn.bingo.mixin;
 
 import me.jfenn.bingo.mixinhandler.ServerPlayNetworkHandlerMixinHandler;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.server.level.ServerPlayer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,8 +16,8 @@ public abstract class ServerPlayNetworkHandlerMixin {
     @Shadow
     public ServerPlayer player;
 
-    @Inject(at = @At("HEAD"), method = "onPlayerMove")
-    private void onPlayerMove(CallbackInfo ci) {
+    @Inject(at = @At("HEAD"), method = "handleMovePlayer")
+    private void onPlayerMove(ServerboundMovePlayerPacket packet, CallbackInfo ci) {
         ServerPlayNetworkHandlerMixinHandler.INSTANCE.onPlayerMove(player);
     }
 }
