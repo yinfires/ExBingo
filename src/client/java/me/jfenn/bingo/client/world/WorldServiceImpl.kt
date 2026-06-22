@@ -18,6 +18,7 @@ class WorldServiceImpl(
 
     override fun createBingoWorld() {
         val parent = client.screen
+        log.info("[WorldServiceImpl] createBingoWorld() invoked, opening CreateWorldScreen (parent={})", parent?.let { it::class.java.simpleName })
         worldState.state = ScreenState.CreateBingoWorld
         CreateWorldScreen.openFresh(client, parent)
     }

@@ -14,6 +14,7 @@ import me.jfenn.bingo.common.team.TeamService
 import me.jfenn.bingo.integrations.vanish.IVanishApi
 import me.jfenn.bingo.platform.*
 import me.jfenn.bingo.platform.event.IEventBus
+import me.jfenn.bingo.platform.event.game.GameResetEvent
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.GameRules
 import org.slf4j.Logger
@@ -257,6 +258,21 @@ internal class PlayerController(
         events.onEnter(GameState.LOADING) { prevState ->
             if (prevState == GameState.LOADING) return@onEnter
 
+            for (player in playerManager.getPlayers()) {
+                if (state.isLobbyMode) updateGameMode(player, forceReset = true)
+            }
+        }
+
+        // Transition from POSTGAME -> PREGAME (returning to the lobby after a game reset).
+        // PlayerController otherwise has no PREGAME handler and relies on the
+        // playersJoinedIds tick path, which is unreliable across the world recreation
+        // that happens during a reset. We listen for GameResetEvent (emitted at the very
+        // end of ResetService, after players are teleported back to the lobby and the
+        // server is unfrozen) so each player is reset from a settled state - otherwise
+        // players stay stuck in their post-game gamemode (appearing invisible in first
+        // person), keep their lingering countdown INVISIBILITY effect, and keep their
+        // in-game inventory.
+        eventBus.register(GameResetEvent) {
             for (player in playerManager.getPlayers()) {
                 if (state.isLobbyMode) updateGameMode(player, forceReset = true)
             }

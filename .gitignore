@@ -1,7 +1,8 @@
-.gradle/
+﻿.gradle/
 build/
 run/
 out/
+tmp/
 *.iml
 *.log
 
@@ -10,3 +11,4 @@ AGENTS.md
 agents.md
 docs/
 reference/
+memory/

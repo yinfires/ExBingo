@@ -37,6 +37,25 @@ class BingoWorldController(
             worldState.isApplyingLobbyDataPack = false
         }
 
+        // The bingo datapack is applied asynchronously by CreateWorldScreen.applyNewPackConfig,
+        // which re-shows the CreateWorldScreen once the reload completes. We intercept that
+        // setScreen via ScreenEvent.Opening - which fires before the screen is initialised or
+        // rendered - so we can trigger world creation without the CreateWorldScreen flashing
+        // on screen for a frame.
+        NeoForge.EVENT_BUS.addListener(ScreenEvent.Opening::class.java) { event ->
+            if (worldState.isApplyingLobbyDataPack) return@addListener
+            if (worldState.state != ScreenState.OpenBingoWorld) return@addListener
+
+            val newScreen = event.newScreen
+            if (newScreen is CreateWorldScreen) {
+                log.info("[BingoWorldController] datapack reload finished, creating world from screen open")
+                // Prevent the bare CreateWorldScreen from being shown (even for a frame) and
+                // immediately kick off world creation from it instead.
+                event.isCanceled = true
+                createBingoWorld(newScreen)
+            }
+        }
+
         NeoForge.EVENT_BUS.addListener(ScreenEvent.Init.Pre::class.java) { event ->
             val screen = event.screen
             if (screen is CreateWorldScreen && worldState.state == ScreenState.CreateBingoWorld) {
@@ -52,8 +71,8 @@ class BingoWorldController(
             val screen = event.screen
             val state = worldState.state
 
-            log.debug(
-                "init screen [{}]: {} isApplyingLobbyDataPack={}",
+            log.info(
+                "[BingoWorldController] init screen [{}]: {} isApplyingLobbyDataPack={}",
                 screen::class.java.simpleName,
                 state,
                 worldState.isApplyingLobbyDataPack
@@ -96,6 +115,7 @@ class BingoWorldController(
                     )
 
                     worldState.state = ScreenState.OpenBingoWorld
+                    log.info("[BingoWorldController] datapack enabled, applying new pack config (-> OpenBingoWorld)")
                     screen.accessor.invokeApplyNewPackConfig(pair.second, dataConfiguration) {}
 
                     return@addListener
@@ -104,6 +124,7 @@ class BingoWorldController(
 
             if (screen is CreateWorldScreen && state == ScreenState.OpenBingoWorld) {
                 // Once the data pack has been applied, immediately create the world.
+                log.info("[BingoWorldController] pack config applied, creating world")
                 createBingoWorld(screen)
 
                 return@addListener

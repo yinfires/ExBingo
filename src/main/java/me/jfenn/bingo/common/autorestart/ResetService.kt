@@ -12,6 +12,7 @@ import me.jfenn.bingo.common.utils.measureTime
 import me.jfenn.bingo.platform.IPersistentStateManager
 import me.jfenn.bingo.platform.IPlayerManager
 import me.jfenn.bingo.platform.IServerWorldFactory
+import me.jfenn.bingo.platform.ITickManager
 import me.jfenn.bingo.platform.event.IEventBus
 import me.jfenn.bingo.platform.event.game.GameResetEvent
 import org.slf4j.Logger
@@ -29,12 +30,18 @@ internal class ResetService(
     private val menuController: MenuController,
     private val persistentStateManager: IPersistentStateManager,
     private val persistentStates: PersistentStates,
+    private val tickManager: ITickManager,
     private val log: Logger,
 ) {
 
     fun resetGame() {
         if (state.isLobbyMode) {
-            resetGameWorlds()
+            try {
+                resetGameWorlds()
+            } catch (e: Throwable) {
+                log.error("[Reset] resetGameWorlds() failed - the game may be left frozen / in a bad state!", e)
+                throw e
+            }
         } else {
             error("This shouldn't be happening. Tell fennifith to stop writing bad code.")
         }
@@ -69,6 +76,14 @@ internal class ResetService(
             spawnService.teleportToLobby(player)
             state.playersJoinedIds += player.uuid
         }
+
+        // Explicitly ensure the server is unfrozen after the reset settles.
+        // The game is frozen on entering POSTGAME; while changeState(PREGAME) above should
+        // unfreeze it via CountdownController, the world recreation can leave the client's
+        // ticking state desynced (frozen) - players see mobs/blocks frozen, can't break
+        // blocks or pick up items, and stay stuck in their post-game (spectator) view.
+        // Re-asserting setFrozen(false) here re-broadcasts the unfrozen state to all clients.
+        tickManager.setFrozen(false)
 
         eventBus.emit(GameResetEvent, GameResetEvent())
     }

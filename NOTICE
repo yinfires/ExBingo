@@ -1,0 +1,25 @@
+ExBingo
+=======
+
+ExBingo is a NeoForge port and derivative version of Yet Another Bingo.
+
+Upstream project:
+- Name: Yet Another Bingo
+- Modrinth: https://modrinth.com/mod/yet-another-minecraft-bingo
+- Source: https://gitlab.com/horrificdev/bingo
+- License: GNU Lesser General Public License v3.0 only (LGPL-3.0-only)
+
+This project keeps portions of the upstream code, resources, data files, translations,
+and package structure while adapting the mod for NeoForge under the `exbingo` public
+mod id and resource namespace.
+
+Credits:
+- Yet Another Bingo by horrificdev and contributors.
+- Bingo Card HUD and "Bingo!" button textures by marceles.
+- Portions of the original project were inspired by Extremelyd1/minecraft-bingo.
+- Translations were contributed through the upstream CrowdIn project and its community.
+
+License:
+This project is distributed under LGPL-3.0-only. See LICENSE for the GNU Lesser
+General Public License v3.0 text and COPYING for the GNU General Public License v3.0
+text referenced by the LGPL.

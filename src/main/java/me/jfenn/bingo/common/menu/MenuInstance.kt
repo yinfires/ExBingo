@@ -73,25 +73,35 @@ internal class MenuInstance(
         yaw = yawDegrees
     }
 
-    private fun loadChunkFor(entity: IEntity) {
-        val chunkPos = ChunkPos(BlockPos(entity.pos.x.toInt(), 0, entity.pos.z.toInt()))
+    private fun loadChunkAt(pos: Vector3d) {
+        val chunkPos = ChunkPos(BlockPos(pos.x.toInt(), 0, pos.z.toInt()))
         world.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL)
     }
 
     fun <T: IEntity> spawn(info: MenuEntityHandle<T>): T? {
+        // Build the candidate entity so we know its intended position, then force-load
+        // that chunk *before* looking up the existing entity by UUID. Otherwise the
+        // chunk holding a persisted menu entity (e.g. from a previous game, before a
+        // lobby reset) may not be loaded yet, so getEntity() returns null, we try to
+        // spawn a fresh entity with the same deterministic UUID, and addFreshEntity
+        // then fails with "UUID of added entity already exists" once the chunk loads -
+        // permanently breaking the menu. Loading first lets us reuse it instead.
+        val candidate = entityManager.createEntity(info.type, world)
+        candidate.uuid = info.id
+        candidate.commandTags = setOf(instanceTag)
+        candidate.resetPos()
+        info.init.invoke(candidate)
+        candidate.transformPos()
+        loadChunkAt(candidate.pos)
+
         @Suppress("UNCHECKED_CAST")
-        var entity: T? = entityManager.getEntity(world, info.id)
+        val existing: T? = entityManager.getEntity(world, info.id)
             ?.takeIf { it.type == info.type }
                 as? T
 
-        if (entity == null) {
-            entity = entityManager.createEntity(info.type, world)
-            entity.uuid = info.id
-            entity.commandTags = setOf(instanceTag)
-            entity.resetPos()
-            info.init.invoke(entity)
-            entity.transformPos()
-            loadChunkFor(entity)
+        val entity: T
+        if (existing == null) {
+            entity = candidate
 
             // Try to spawn the entity into the world...
             val isSuccess = entityManager.spawnEntity(world, entity)
@@ -109,6 +119,9 @@ internal class MenuInstance(
             failedSpawnAttempts.remove(info.id)
             loggedSpawnFailures.remove(info.id)
         } else {
+            // An entity with this UUID already exists - reuse it and drop the candidate
+            candidate.discard()
+            entity = existing
             entity.commandTags = setOf(instanceTag)
             entity.resetPos()
             info.init.invoke(entity)
