@@ -22,4 +22,8 @@ class ServerTaskExecutor(
         // Use (ticks - 3) to run the task immediately (otherwise there's a 3 tick delay)
         server.tell(TickTask(server.tickCount - 3, runnable))
     }
+
+    override fun executeNextTick(runnable: Runnable) {
+        server.tell(TickTask(server.tickCount + 1, runnable))
+    }
 }

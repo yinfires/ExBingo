@@ -1,6 +1,7 @@
 package me.jfenn.bingo.client.impl
 
 import me.jfenn.bingo.client.impl.draw.FontImpl
+import me.jfenn.bingo.client.impl.screen.ScreenImpl
 import me.jfenn.bingo.client.platform.IClient
 import me.jfenn.bingo.client.platform.IClientPlayer
 import me.jfenn.bingo.client.platform.renderer.IFont
@@ -40,6 +41,12 @@ class ClientImpl : IClient {
 
     override fun execute(callback: () -> Unit) {
         client.execute(callback)
+    }
+
+    override fun closeExBingoScreen() {
+        if (client.screen is ScreenImpl) {
+            client.setScreen(null)
+        }
     }
 
     override val executor: Executor = client

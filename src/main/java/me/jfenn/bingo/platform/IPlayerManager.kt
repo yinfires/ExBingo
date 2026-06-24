@@ -104,6 +104,22 @@ interface IPlayerHandle : ILivingEntity {
 
     val abilities: IPlayerAbilities
     fun sendAbilitiesUpdate()
+
+    /**
+     * Force a full resync of the player's inventory to the client. The server can change
+     * inventory contents directly (e.g. clearing items on game reset), but those changes
+     * are not flushed to the client until the container broadcasts - without this, the
+     * client shows stale items until the player interacts with their inventory.
+     */
+    fun syncInventory()
+
+    /**
+     * Re-assert the player's client-visible state (gamemode, abilities, and the player entity's
+     * tracked data such as the invisibility flag) by forcing fresh packets to the client. Used
+     * after a game reset, where the server-side state is correct but the client can be left
+     * desynced (e.g. rendering the player as an invisible spectator) across the world recreation.
+     */
+    fun resyncClientState()
 }
 
 interface IPlayerAbilities {

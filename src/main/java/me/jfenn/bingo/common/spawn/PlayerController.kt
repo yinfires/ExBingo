@@ -14,7 +14,6 @@ import me.jfenn.bingo.common.team.TeamService
 import me.jfenn.bingo.integrations.vanish.IVanishApi
 import me.jfenn.bingo.platform.*
 import me.jfenn.bingo.platform.event.IEventBus
-import me.jfenn.bingo.platform.event.game.GameResetEvent
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.GameRules
 import org.slf4j.Logger
@@ -114,6 +113,10 @@ internal class PlayerController(
         val isRespawnNeeded = (newPlayerState != oldPlayerState || forceReset) && (state.state in preGameStates || isOnActiveTeam) && state.state != GameState.POSTGAME
         val isStuckInLobby = player.serverWorld == lobbyWorld && state.state != GameState.PREGAME
         val isStuckInWorld = player.serverWorld != lobbyWorld && state.state == GameState.PREGAME
+        log.info(
+            "[PlayerController] updateGameMode({}): state={}, targetGameMode={}, currentGameMode={}, isAlive={}, world={}, isRespawnNeeded={}, isStuckInLobby={}, isStuckInWorld={}, forceReset={}",
+            player.playerName, state.state, gameMode, player.gameMode, player.isAlive, player.serverWorld.dimension().location(), isRespawnNeeded, isStuckInLobby, isStuckInWorld, forceReset
+        )
         if (isRespawnNeeded || isStuckInLobby || isStuckInWorld) {
             if (!player.isAlive) {
                 log.debug("[PlayerController] respawnPlayer({}, {})", player.playerName, player.uuid)
@@ -136,6 +139,36 @@ internal class PlayerController(
             player.abilities.allowFlying = true
             player.sendAbilitiesUpdate()
         }
+    }
+
+    fun restoreLobbyPlayerAfterReset(player: IPlayerHandle) {
+        if (!state.isLobbyMode) {
+            log.error("[PlayerController] Attempted restoreLobbyPlayerAfterReset, but isLobbyMode=false!")
+            return
+        }
+
+        resetPlayerHealth(player)
+
+        player.allHeldStacks().forEach { stack ->
+            stack.count = 0
+        }
+
+        spawnService.teleportToLobby(player)
+
+        state.players[player.uuid] = PlayerState(
+            lastGameId = state.gameId,
+            lastState = state.state,
+            lastTeam = teamService.getPlayerTeam(player)?.key,
+        )
+
+        if (player.gameMode != PlayerGameMode.ADVENTURE) {
+            player.gameMode = PlayerGameMode.ADVENTURE
+        }
+
+        player.abilities.allowFlying = false
+        player.sendAbilitiesUpdate()
+        updateVanishStatus(player)
+        player.syncInventory()
     }
 
     private fun resetPlayerHealth(player: IPlayerHandle) {
@@ -206,6 +239,13 @@ internal class PlayerController(
                 spawnService.giveSpawnEquipment(listOf(player))
             }
         }
+
+        // Flush the cleared inventory to the client AFTER teleporting. A cross-dimension
+        // teleport (e.g. back to the lobby) resets the client's container, so syncing before
+        // the teleport would be discarded. Editing stack counts above only changes server-side
+        // state; without this resync the client keeps showing the old items until the player
+        // opens their inventory (which forces a container sync).
+        player.syncInventory()
     }
 
     init {
@@ -258,21 +298,6 @@ internal class PlayerController(
         events.onEnter(GameState.LOADING) { prevState ->
             if (prevState == GameState.LOADING) return@onEnter
 
-            for (player in playerManager.getPlayers()) {
-                if (state.isLobbyMode) updateGameMode(player, forceReset = true)
-            }
-        }
-
-        // Transition from POSTGAME -> PREGAME (returning to the lobby after a game reset).
-        // PlayerController otherwise has no PREGAME handler and relies on the
-        // playersJoinedIds tick path, which is unreliable across the world recreation
-        // that happens during a reset. We listen for GameResetEvent (emitted at the very
-        // end of ResetService, after players are teleported back to the lobby and the
-        // server is unfrozen) so each player is reset from a settled state - otherwise
-        // players stay stuck in their post-game gamemode (appearing invisible in first
-        // person), keep their lingering countdown INVISIBILITY effect, and keep their
-        // in-game inventory.
-        eventBus.register(GameResetEvent) {
             for (player in playerManager.getPlayers()) {
                 if (state.isLobbyMode) updateGameMode(player, forceReset = true)
             }

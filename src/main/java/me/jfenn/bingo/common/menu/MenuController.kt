@@ -24,14 +24,15 @@ import me.jfenn.bingo.platform.block.BlockPosition
 import me.jfenn.bingo.platform.block.IWallSignBlockState
 import me.jfenn.bingo.platform.world.IChunkHeightmap
 import me.jfenn.bingo.platform.event.IEventBus
-import me.jfenn.bingo.platform.event.model.EntityLoadEvent
 import me.jfenn.bingo.platform.event.model.TickEvent
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.PlayerHeadBlock
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.TicketType
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.chunk.status.ChunkStatus
 import org.joml.Matrix4d
@@ -66,9 +67,19 @@ internal class MenuController(
 ) : BingoComponent() {
 
     private var menu: MenuInstance? = null
+    private var suppressNextPregameSpawn = false
     private val koinScope = scopeManager.getScope(server)!!
+    private val teamPickerChunks = mutableSetOf<ChunkPos>()
 
-    private val instanceTag = "bingo-${UUID.randomUUID()}"
+    // Unique tag for entities belonging to the current lobby instance. Regenerated each time
+    // the lobby is spawned so stale runtime menu/team entities can be discarded safely.
+    private var instanceTag = "bingo-${UUID.randomUUID()}"
+
+    private companion object {
+        val TEAM_PICKER_TICKET: TicketType<ChunkPos> = TicketType.create("bingo-team-picker") { a, b ->
+            a.toLong().compareTo(b.toLong())
+        }
+    }
 
     private object Cache {
         var lobbyWorldModified: Instant = Instant.MIN
@@ -86,56 +97,19 @@ internal class MenuController(
         }
 
         events.onEnter(GameState.PREGAME)  {
-            // this *shouldn't* happen... just being safe to prevent double-entities
-            if (menu != null) {
-                log.error("BUG: GameState.PREGAME onEnter handler has been invoked already!")
-                return@onEnter
-            }
-
-            if (!state.isLobbyMode) {
-                log.info("[MenuController] Not spawning lobby, as isLobbyMode=false")
-                return@onEnter
-            }
-
             val lobbyWorld = server.lobbyWorld
             if (lobbyWorld == null) {
                 log.error("[MenuController] Not spawning lobby, as the dimension does not exist")
                 return@onEnter
             }
 
-            val (lobbySpawnPos, lobbySpawnYaw) = getLobbySpawnPosition(lobbyWorld)
-            state.lobbySpawnPos = lobbySpawnPos
-            state.lobbySpawnYaw = lobbySpawnYaw
-
-            val menuPos = getMenuPosition(lobbyWorld)
-            if (menuPos != null) {
-                log.info("[MenuController] Spawning lobby menu at ${menuPos.getTranslation(Vector3d())}")
-                val menuInstance = MenuInstance(
-                    log = log,
-                    koinScope = koinScope,
-                    world = lobbyWorld,
-                    entityManager = entityManager,
-                    interactionEntityEvents = interactionEntityEvents,
-                    matrix = menuPos,
-                    instanceTag = instanceTag,
-                )
-                menu = menuInstance
-            } else {
-                log.warn("[MenuController] Not spawning menu entities as the lobby has no menu position.")
+            refreshLobbyState(lobbyWorld)
+            if (suppressNextPregameSpawn) {
+                suppressNextPregameSpawn = false
+                return@onEnter
             }
 
-            spawnTeamEntities(lobbyWorld)
-        }
-
-        eventBus.register(EntityLoadEvent) {
-            val lobbyWorld = server.lobbyWorld ?: return@register
-            val bingoTag = it.entity.tags.find { tag -> tag.startsWith("bingo-") }
-                ?: return@register
-
-            if (it.world == lobbyWorld && it.entity !is Player && bingoTag != instanceTag) {
-                log.warn("Discarding an existing lobby world entity: ${it.entity.type}")
-                it.entity.discard()
-            }
+            spawnLobby(lobbyWorld)
         }
 
         eventBus.register(TickEvent.Start) {
@@ -144,14 +118,8 @@ internal class MenuController(
 
         events.onStateChange { (_, to) ->
             if (to != GameState.PREGAME) {
-                menu?.cleanup()
-                menu = null
-
-                // discard team picker entities which aren't part of the menu
-                val lobbyWorld = server.lobbyWorld ?: return@onStateChange
-                lobbyWorld.allEntities
-                    .filter { it !is Player && it.tags.contains(instanceTag) }
-                    .forEach { it.discard() }
+                suppressNextPregameSpawn = false
+                cleanupLobby(server.lobbyWorld)
             }
         }
 
@@ -168,12 +136,101 @@ internal class MenuController(
         }
     }
 
+    fun suspendPregameSpawn() {
+        suppressNextPregameSpawn = true
+    }
+
+    fun menuEntityCount(): Int {
+        val lobbyWorld = server.lobbyWorld ?: return 0
+        return lobbyWorld.allEntities.count { entity ->
+            entity !is Player && entity.tags.any { it.startsWith("bingo-") }
+        }
+    }
+
+    fun spawnLobby(lobbyWorld: ServerLevel? = server.lobbyWorld) {
+        if (!state.isLobbyMode) {
+            log.info("[MenuController] Not spawning lobby, as isLobbyMode=false")
+            return
+        }
+
+        if (lobbyWorld == null) {
+            log.error("[MenuController] Not spawning lobby, as the dimension does not exist")
+            return
+        }
+
+        if (menu != null) {
+            menu?.markDirty()
+            return
+        }
+
+        val menuPos = refreshLobbyState(lobbyWorld)
+        cleanupLobby(lobbyWorld)
+
+        // Regenerate our instance tag so any menu/team-picker entities that survived from a
+        // previous lobby instance now carry an old tag and can be discarded.
+        instanceTag = "bingo-${UUID.randomUUID()}"
+
+        if (menuPos != null) {
+            log.info("[MenuController] Spawning lobby menu at ${menuPos.getTranslation(Vector3d())}")
+            menu = MenuInstance(
+                log = log,
+                koinScope = koinScope,
+                world = lobbyWorld,
+                entityManager = entityManager,
+                interactionEntityEvents = interactionEntityEvents,
+                matrix = menuPos,
+                instanceTag = instanceTag,
+            )
+        } else {
+            log.warn("[MenuController] Not spawning menu entities as the lobby has no menu position.")
+        }
+
+        spawnTeamEntities(lobbyWorld)
+    }
+
+    private fun refreshLobbyState(lobbyWorld: ServerLevel): Matrix4d? {
+        val (lobbySpawnPos, lobbySpawnYaw) = getLobbySpawnPosition(lobbyWorld)
+        state.lobbySpawnPos = lobbySpawnPos
+        state.lobbySpawnYaw = lobbySpawnYaw
+        return getMenuPosition(lobbyWorld)
+    }
+
+    private fun cleanupLobby(lobbyWorld: ServerLevel?) {
+        menu?.cleanup()
+        menu = null
+
+        if (lobbyWorld == null) {
+            teamPickerChunks.clear()
+            return
+        }
+
+        releaseTeamPickerTickets(lobbyWorld)
+        lobbyWorld.allEntities
+            .filter { it !is Player && it.tags.any { tag -> tag.startsWith("bingo-") } }
+            .forEach(::discardLobbyEntity)
+    }
+
+    private fun discardLobbyEntity(entity: Entity) {
+        interactionEntityEvents.removeInteract(entity.uuid)
+        entity.discard()
+    }
+
     fun prepareLobbyFiles() = log.measureTime("[MenuController] Preparing the BINGO lobby...") {
         val storageDir = levelStorage.getLevelSaveDir(LOBBY_WORLD_ID)
+            ?.normalize()
             ?: run {
                 log.error("Unable to find world storage dir for $LOBBY_WORLD_ID")
                 return@measureTime
             }
+
+        // Lobby menu/team picker entities are generated at runtime. Persisted entities from the
+        // bundled lobby world keep fixed UUIDs and collide with the freshly spawned menu.
+        val entitiesDir = storageDir.resolve("entities").normalize()
+        if (!entitiesDir.startsWith(storageDir)) {
+            log.error("[MenuController] Tried to delete a directory outside of the world location: $entitiesDir")
+        } else {
+            entitiesDir.toFile().deleteRecursively()
+        }
 
         // If the lobby has been modified, clear cached positions
         val lobbyWorldModified = lobbyWorldService.readLastModified()
@@ -195,10 +252,9 @@ internal class MenuController(
                 val entryName = entry.name.substringAfter('/')
 
                 if (
-                    entryName.startsWith("entities/") ||
                     entryName.startsWith("region/")
                 ) {
-                    val outPath = storageDir.resolve(entryName)
+                    val outPath = storageDir.resolve(entryName).normalize()
                     if (!outPath.startsWith(storageDir)) {
                         log.error("[MenuController] Tried to create a file outside of the world location: $outPath")
                         continue
@@ -391,6 +447,45 @@ internal class MenuController(
             )
         )
         getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL)
+        chunkSource.addRegionTicket(TEAM_PICKER_TICKET, chunkPos, 0, chunkPos)
+        teamPickerChunks += chunkPos
+    }
+
+    private fun releaseTeamPickerTickets(lobbyWorld: ServerLevel) {
+        for (chunkPos in teamPickerChunks) {
+            lobbyWorld.chunkSource.removeRegionTicket(TEAM_PICKER_TICKET, chunkPos, 0, chunkPos)
+        }
+        teamPickerChunks.clear()
+    }
+
+    private fun Vector3d.isNear(other: Vector3d): Boolean {
+        return distanceSquared(other) < 1.0E-4
+    }
+
+    private fun isLobbyEntityType(type: EntityType<*>): Boolean {
+        return type == EntityType.TEXT_DISPLAY ||
+                type == EntityType.BLOCK_DISPLAY ||
+                type == EntityType.INTERACTION
+    }
+
+    private fun cleanupTeamPickerEntities(lobbyWorld: ServerLevel, position: Vector3d) {
+        val positions = listOf(
+            position + Vector3d(0.0, 1.5, 0.0),
+            position + Vector3d(0.0, 1.0, 0.0),
+            position + Vector3d(0.0, -1.0, 0.0),
+        )
+
+        entityManager.iterateEntities(lobbyWorld)
+            .filter { isLobbyEntityType(it.type) }
+            .filter { entity -> positions.any { it.isNear(entity.pos) } }
+            .filter {
+                val bingoTags = it.commandTags.filter { tag -> tag.startsWith("bingo-") }
+                bingoTags.isEmpty() || instanceTag !in bingoTags
+            }
+            .forEach { entity ->
+                interactionEntityEvents.removeInteract(entity.uuid)
+                entity.discard()
+            }
     }
 
     private fun spawnTeamEntity(
@@ -401,6 +496,7 @@ internal class MenuController(
         instanceTag: String,
     ) {
         lobbyWorld.loadChunkAt(position)
+        cleanupTeamPickerEntities(lobbyWorld, position)
 
         val nameEntity = entityManager.createEntity(EntityType.TEXT_DISPLAY, lobbyWorld)
             .apply {

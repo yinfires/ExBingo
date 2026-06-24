@@ -10,7 +10,8 @@ class GameStatusPacket(
     val ingameDuration: Duration?,
     val remainingDuration: Duration?,
 ) {
-    val isDefaultInstance get() = this === DEFAULT
+    val isDefaultInstance get() = ingameDuration == null && remainingDuration == null
+    val isInGame get() = ingameDuration != null
 
     companion object {
         val DEFAULT = GameStatusPacket(

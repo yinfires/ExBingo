@@ -31,6 +31,7 @@ import me.jfenn.bingo.common.ready.SetReadyPacket
 import me.jfenn.bingo.common.scope.BingoComponent
 import me.jfenn.bingo.common.scoring.GameMessagePacket
 import me.jfenn.bingo.common.scoring.ScoreMessagePacket
+import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.team.BingoTeamKey
 import me.jfenn.bingo.common.text.TextProvider
 import me.jfenn.bingo.common.utils.div
@@ -277,6 +278,31 @@ internal class BingoHudController(
             .distinctBy { it.teamKey?.id }
     }
 
+    private fun clearGameOverScreen() {
+        val hadGameOver = state.gameOver != null
+        if (hadGameOver) {
+            state.resetGameOver()
+        }
+
+        client.closeExBingoScreen()
+
+        if (hadGameOver) {
+            eventBus.emit(HudStateChangedEvent, Unit)
+        }
+    }
+
+    private fun clearPostgameScreenState() {
+        val hadGameOver = state.gameOver != null
+        state.selectedTeam = null
+        state.resetGameOver()
+        state.tooltip = null
+        state.tooltipStartedAt = null
+        if (hadGameOver) {
+            client.closeExBingoScreen()
+            eventBus.emit(HudStateChangedEvent, Unit)
+        }
+    }
+
     private fun onGameOver(clientPacket: ClientPacket<GameOverPacket>) {
         val (packet) = clientPacket
         val gameOver = state.gameOver ?: BingoHudState.GameOver(packet, emptyList())
@@ -340,6 +366,12 @@ internal class BingoHudController(
                 state.ready?.isRunning != packet.isRunning
 
         state.ready = packet
+        state.gameState = packet.state
+        if (state.gameOver != null && packet.state != GameState.POSTGAME) {
+            clearPostgameScreenState()
+            return
+        }
+
         if (isStateChanged) {
             eventBus.emit(HudStateChangedEvent, Unit)
         }
@@ -375,8 +407,10 @@ internal class BingoHudController(
         // if there are no teams being displayed (BingoMapController sends when entering PREGAME)
         // reset the HUD state completely
         // (which clears the gameOverPacket state)
-        if (displays.isEmpty() && state.gameStatus.isDefaultInstance) {
+        if (displays.isEmpty() && !state.gameStatus.isInGame && state.gameOver == null) {
             state.reset()
+            client.closeExBingoScreen()
+            eventBus.emit(HudStateChangedEvent, Unit)
         }
     }
 
@@ -465,10 +499,15 @@ internal class BingoHudController(
 
     init {
         eventBus.register(packetEvents.cardResetV1) {
-            state.reset()
+            if (state.gameOver != null) {
+                state.clearDisplayedCards()
+            } else {
+                state.reset()
+                client.closeExBingoScreen()
+            }
+            eventBus.emit(HudStateChangedEvent, Unit)
         }
 
-        eventBus.register(packetEvents.cardDisplayV1, ::onCardDisplayV1)
         eventBus.register(packetEvents.cardDisplayV1, ::onCardDisplayV1)
         eventBus.register(packetEvents.cardDisplayV2, ::onCardDisplayV2)
 
@@ -494,6 +533,10 @@ internal class BingoHudController(
 
         eventBus.register(packetEvents.gameStatusV1) {
             state.gameStatus = it.packet
+            if (state.gameStatus.isDefaultInstance) {
+                clearPostgameScreenState()
+                return@register
+            }
             eventBus.emit(HudStateChangedEvent, Unit)
         }
         eventBus.register(packetEvents.gameMessageV1, ::onGameMessage)

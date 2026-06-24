@@ -19,8 +19,12 @@ import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.OutgoingChatMessage
 import net.minecraft.server.level.ClientInformation
 import net.minecraft.network.protocol.game.ServerboundClientCommandPacket
+import net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket
+import net.minecraft.network.protocol.game.ClientboundGameEventPacket
+import net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacket
 import net.minecraft.network.protocol.game.ClientboundSoundPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
 import net.minecraft.core.registries.BuiltInRegistries
@@ -386,6 +390,45 @@ class PlayerHandle(
 
     override fun sendAbilitiesUpdate() {
         player.onUpdateAbilities()
+    }
+
+    override fun syncInventory() {
+        // Refresh the player's own inventory menu, then push a full container resync.
+        // This flushes server-side inventory edits (e.g. items cleared on reset) to the client.
+        player.inventoryMenu.sendAllDataToRemote()
+        player.containerMenu.sendAllDataToRemote()
+    }
+
+    override fun resyncClientState() {
+        val level = player.serverLevel()
+        val levelData = level.levelData
+        val playerList = player.server.playerList
+
+        player.connection.teleport(player.x, player.y, player.z, player.yRot, player.xRot)
+        player.connection.resetPosition()
+        player.connection.send(ClientboundChangeDifficultyPacket(levelData.difficulty, levelData.isDifficultyLocked))
+        player.connection.send(
+            ClientboundGameEventPacket(
+                ClientboundGameEventPacket.CHANGE_GAME_MODE,
+                player.gameMode.gameModeForPlayer.id.toFloat(),
+            )
+        )
+        player.connection.send(ClientboundPlayerAbilitiesPacket(player.abilities))
+        playerList.sendPlayerPermissionLevel(player)
+        playerList.sendAllPlayerInfo(player)
+        playerList.sendActivePlayerEffects(player)
+        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(player)
+
+        player.onUpdateAbilities()
+        syncInventory()
+
+        player.setInvisible(true)
+        player.setInvisible(false)
+        val dataValues = player.entityData.packDirty() ?: player.entityData.nonDefaultValues
+        if (dataValues != null) {
+            val packet = ClientboundSetEntityDataPacket(player.id, dataValues)
+            level.chunkSource.broadcastAndSend(player, packet)
+        }
     }
 }
 

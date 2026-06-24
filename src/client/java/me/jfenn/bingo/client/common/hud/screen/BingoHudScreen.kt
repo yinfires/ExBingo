@@ -21,6 +21,7 @@ import me.jfenn.bingo.common.game.GameOverPacket
 import me.jfenn.bingo.common.map.CardTileAction
 import me.jfenn.bingo.common.map.Color
 import me.jfenn.bingo.common.ready.SetReadyPacket
+import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.team.BingoTeamKey
 import me.jfenn.bingo.common.text.TextProvider
 import me.jfenn.bingo.common.utils.*
@@ -172,6 +173,7 @@ internal class BingoHudScreen(
     ).also {
         it.message = text.string(StringKey.WorldKeepPlaying)
         it.onClick {
+            state.resetGameOver()
             client.player.sendCommand(GameCommands.RESUME_COMMAND)
             helper.close()
         }
@@ -501,7 +503,12 @@ internal class BingoHudScreen(
         return cardsWidget.mouseScrolled(mouseX, mouseY, amount) || super.mouseScrolled(mouseX, mouseY, amount)
     }
 
-    override fun shouldPause() = config.client.cardPausesGame
+    override fun shouldPause() =
+        gameOver == null &&
+                config.client.cardPausesGame &&
+                state.cards.isNotEmpty() &&
+                state.gameState == GameState.PLAYING &&
+                state.gameStatus.isInGame
 
     override fun shouldCloseOnEsc() = canEscape
 

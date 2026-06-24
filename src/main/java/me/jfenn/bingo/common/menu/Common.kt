@@ -62,7 +62,9 @@ internal data class MenuEntityHandle<T: IEntity>(
     val type: EntityType<T>,
     val init: T.() -> Unit = {},
     val onUpdate: EventListener<T> = EventListener(),
-)
+) {
+    var entityId: UUID? = null
+}
 
 internal fun component(koinScope: Scope, setup: MenuComponent.() -> Unit): MenuComponent {
     val component = MenuComponent(koinScope)
@@ -138,6 +140,7 @@ internal open class MenuComponent(
     fun spawn(tracker: MenuInstance) {
         this.tracker = tracker
         onUpdate.invoke(tracker)
+        tracker.prepareSpawn(entities)
         val spawned = entities.map {
             tracker.spawn(it)
         }

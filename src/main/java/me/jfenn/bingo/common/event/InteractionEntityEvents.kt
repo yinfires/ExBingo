@@ -21,6 +21,10 @@ class InteractionEntityEvents(
         INTERACT_LISTENERS[entity.uuid] = consumer
     }
 
+    fun removeInteract(entityId: UUID) {
+        INTERACT_LISTENERS.remove(entityId)
+    }
+
     companion object {
         @JvmStatic
         fun triggerInteract(entity: IInteractionEntity, player: IPlayerHandle, server: MinecraftServer): Boolean {

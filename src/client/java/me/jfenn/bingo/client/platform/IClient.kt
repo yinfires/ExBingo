@@ -13,5 +13,6 @@ interface IClient {
     val mouse: Vector2i
     var screen: Screen?
     fun execute(callback: () -> Unit)
+    fun closeExBingoScreen()
     val executor: Executor
 }

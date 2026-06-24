@@ -10,5 +10,7 @@ interface IExecutors {
 
     fun createServerTaskExecutor(server: MinecraftServer) : IServerTaskExecutor
 
-    interface IServerTaskExecutor : Executor
+    interface IServerTaskExecutor : Executor {
+        fun executeNextTick(runnable: Runnable)
+    }
 }

@@ -8,6 +8,7 @@ import me.jfenn.bingo.common.game.GameStatusPacket
 import me.jfenn.bingo.common.menu.tooltips.TooltipPacket
 import me.jfenn.bingo.common.ready.ReadyUpdatePacket
 import me.jfenn.bingo.common.scoring.GameMessagePacket
+import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.team.BingoTeamKey
 import me.jfenn.bingo.platform.text.IText
 import java.time.Instant
@@ -17,6 +18,7 @@ internal class BingoHudState(
     var now: Instant = Instant.now(),
     var cards: MutableMap<BingoTeamKey?, ClientCardBase> = mutableMapOf(),
     var selectedTeam: BingoTeamKey? = null,
+    var gameState: GameState? = null,
     var gameStatus: GameStatusPacket = GameStatusPacket.DEFAULT,
     var gameOver: GameOver? = null,
     val messages: MutableList<ScoreMessage> = mutableListOf(),
@@ -29,6 +31,8 @@ internal class BingoHudState(
 ) {
     fun reset() {
         selectedTeam = null
+        gameState = null
+        gameStatus = GameStatusPacket.DEFAULT
         resetGameOver()
         tooltip = null
         tooltipStartedAt = null
@@ -44,6 +48,17 @@ internal class BingoHudState(
         gameOver = null
     }
 
+    fun clearDisplayedCards() {
+        val gameOverCards = gameOver?.cards.orEmpty()
+        cards.values.forEach { card ->
+            if (card !in gameOverCards) {
+                card.close()
+            }
+        }
+        cards = mutableMapOf()
+        selectedTeam = null
+    }
+
     fun clearMessages() {
         messages.clear()
         pastMessages.clear()
@@ -52,6 +67,7 @@ internal class BingoHudState(
     fun resetAll() {
         reset()
         clearMessages()
+        gameState = null
         gameStatus = GameStatusPacket.DEFAULT
         cards.values.forEach { it.close() }
         cards = mutableMapOf()

@@ -25,10 +25,14 @@ internal class GameStatusController(
     private fun sendGameStatus(
         players: List<IPlayerHandle>
     ) {
-        val packet = GameStatusPacket(
-            ingameDuration = state.ingameDuration(),
-            remainingDuration = state.remainingDuration() ?: state.options.timeLimit,
-        )
+        val packet = if (state.state == GameState.PLAYING || state.state == GameState.POSTGAME) {
+            GameStatusPacket(
+                ingameDuration = state.ingameDuration(),
+                remainingDuration = state.remainingDuration() ?: state.options.timeLimit,
+            )
+        } else {
+            GameStatusPacket.DEFAULT
+        }
 
         for (player in players) {
             packets.gameStatusV1.send(player, packet)

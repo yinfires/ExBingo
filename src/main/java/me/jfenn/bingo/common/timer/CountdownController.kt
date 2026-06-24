@@ -53,6 +53,14 @@ internal class CountdownController(
         }
     }
 
+    private fun clearCountdownInvisibility() {
+        for (player in playerManager.getPlayers()) {
+            player.getEffects()
+                .filter { it.type == EffectType.INVISIBILITY && it.duration < 0 }
+                .forEach { player.removeEffect(it) }
+        }
+    }
+
     private fun forcePlayersOnBats() {
         state.getRegisteredTeams().forEach { team ->
             val entity = entityMap.getOrPut(team.key) {
@@ -118,11 +126,16 @@ internal class CountdownController(
                 forcePlayersInvisible()
         }
 
-        events.onStateChange { (_, toState) ->
+        events.onStateChange { (fromState, toState) ->
             val isLockedState = toState == GameState.LOADING || toState == GameState.COUNTDOWN || toState == GameState.POSTGAME
 
             if (state.isLobbyMode)
                 tickManager.setFrozen(isLockedState)
+
+            if (fromState == GameState.COUNTDOWN && toState != GameState.COUNTDOWN) {
+                countdownDelayTicks = null
+                clearCountdownInvisibility()
+            }
 
             if (!isLockedState) {
                 // Remove all spawn marker entities when the game starts

@@ -21,8 +21,16 @@ class MinecraftServerImpl(
     override val isDedicated: Boolean
         get() = server.isDedicatedServer
 
+    override val isFrozen: Boolean
+        get() = server.tickRateManager().isFrozen
+
+    override val runsNormally: Boolean
+        get() = server.tickRateManager().runsNormally()
+
     override fun setFrozen(frozen: Boolean) {
-        server.tickRateManager().setFrozen(frozen)
+        val tickRateManager = server.tickRateManager()
+        tickRateManager.setFrozen(frozen)
+        tickRateManager.tick()
     }
 
     override fun getLevelSaveDir(worldId: ResourceLocation): Path? {

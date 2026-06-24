@@ -3,7 +3,7 @@ package me.jfenn.bingo.common.autorestart
 import me.jfenn.bingo.common.bossbar.BossBarService
 import me.jfenn.bingo.common.menu.MenuController
 import me.jfenn.bingo.common.scoreboard.ScoreboardService
-import me.jfenn.bingo.common.spawn.SpawnService
+import me.jfenn.bingo.common.spawn.PlayerController
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.state.PersistentStates
@@ -11,6 +11,7 @@ import me.jfenn.bingo.common.team.TeamService
 import me.jfenn.bingo.common.utils.measureTime
 import me.jfenn.bingo.platform.IPersistentStateManager
 import me.jfenn.bingo.platform.IPlayerManager
+import me.jfenn.bingo.platform.IExecutors
 import me.jfenn.bingo.platform.IServerWorldFactory
 import me.jfenn.bingo.platform.ITickManager
 import me.jfenn.bingo.platform.event.IEventBus
@@ -22,7 +23,7 @@ internal class ResetService(
     private val eventBus: IEventBus,
     private val state: BingoState,
     private val playerManager: IPlayerManager,
-    private val spawnService: SpawnService,
+    private val playerController: PlayerController,
     private val teamService: TeamService,
     private val scoreboardService: ScoreboardService,
     private val bossBarService: BossBarService,
@@ -31,19 +32,23 @@ internal class ResetService(
     private val persistentStateManager: IPersistentStateManager,
     private val persistentStates: PersistentStates,
     private val tickManager: ITickManager,
+    private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
     private val log: Logger,
 ) {
 
     fun resetGame() {
-        if (state.isLobbyMode) {
-            try {
-                resetGameWorlds()
-            } catch (e: Throwable) {
-                log.error("[Reset] resetGameWorlds() failed - the game may be left frozen / in a bad state!", e)
-                throw e
-            }
-        } else {
+        if (!state.isLobbyMode) {
             error("This shouldn't be happening. Tell fennifith to stop writing bad code.")
+        }
+
+        try {
+            tickManager.setFrozen(false)
+            resetGameWorlds()
+        } catch (e: Throwable) {
+            log.error("[Reset] resetGameWorlds() failed", e)
+            throw e
+        } finally {
+            tickManager.setFrozen(false)
         }
     }
 
@@ -56,9 +61,11 @@ internal class ResetService(
         state.reset()
 
         log.info("[Reset] Recreating worlds")
+        tickManager.setFrozen(false)
         serverWorldFactory.recreateWorlds(Random.Default.nextLong()) {
             menuController.prepareLobbyFiles()
         }
+        tickManager.setFrozen(false)
 
         log.info("[Reset] Transferring game state")
         // This is important! Otherwise the bingo persistent state does not get copied into the new world data
@@ -69,23 +76,28 @@ internal class ResetService(
         )
 
         log.info("[Reset] Teleporting players back to lobby")
+        menuController.suspendPregameSpawn()
         state.changeState(eventBus, GameState.PREGAME) // invokes createInitialCards in ScoredItemCheck
 
-        // if any player is still in the world, teleport to the lobby
         for (player in playerManager.getPlayers()) {
-            spawnService.teleportToLobby(player)
-            state.playersJoinedIds += player.uuid
+            playerController.restoreLobbyPlayerAfterReset(player)
         }
 
-        // Explicitly ensure the server is unfrozen after the reset settles.
-        // The game is frozen on entering POSTGAME; while changeState(PREGAME) above should
-        // unfreeze it via CountdownController, the world recreation can leave the client's
-        // ticking state desynced (frozen) - players see mobs/blocks frozen, can't break
-        // blocks or pick up items, and stay stuck in their post-game (spectator) view.
-        // Re-asserting setFrozen(false) here re-broadcasts the unfrozen state to all clients.
         tickManager.setFrozen(false)
 
-        eventBus.emit(GameResetEvent, GameResetEvent())
+        serverTaskExecutor.executeNextTick {
+            tickManager.setFrozen(false)
+            for (player in playerManager.getPlayers()) {
+                player.resyncClientState()
+            }
+
+            serverTaskExecutor.executeNextTick {
+                tickManager.setFrozen(false)
+                menuController.spawnLobby()
+                eventBus.emit(GameResetEvent, GameResetEvent())
+                log.debug("[Reset] post-reset state: frozen={}, runsNormally={}, menuEntities={}", tickManager.isFrozen, tickManager.runsNormally, menuController.menuEntityCount())
+            }
+        }
     }
 
 }
