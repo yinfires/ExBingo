@@ -4,6 +4,7 @@
   "package": "me.jfenn.bingo.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "ChunkMapAccessor",
     "EndPortalBlockMixin",
     "GameRuleOverrideMixin",
     "HungerManagerAccessor",
@@ -16,11 +17,13 @@
     "PlayerAdvancementTrackerPreventSpectatorsMixin",
     "PlayerEntityMixin",
     "PlayerManagerMixin",
+    "PersistentEntitySectionManagerAccessor",
     "RaidManagerAccessor",
     "ServerBossBarMixin",
     "ServerChunkManagerAccessor",
     "ServerChunkManagerMixin",
     "ServerEntityManagerMixin",
+    "ServerLevelEntityManagerAccessor",
     "ServerPlayNetworkHandlerMixin",
     "ThreadExecutorAccessor"
   ],

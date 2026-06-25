@@ -294,6 +294,7 @@ internal class BingoHudController(
     private fun clearPostgameScreenState() {
         val hadGameOver = state.gameOver != null
         state.selectedTeam = null
+        state.gameState = null
         state.resetGameOver()
         state.tooltip = null
         state.tooltipStartedAt = null
@@ -305,6 +306,7 @@ internal class BingoHudController(
 
     private fun onGameOver(clientPacket: ClientPacket<GameOverPacket>) {
         val (packet) = clientPacket
+        state.gameState = GameState.POSTGAME
         val gameOver = state.gameOver ?: BingoHudState.GameOver(packet, emptyList())
         state.gameOver = gameOver
         updateGameOverViews()
@@ -536,6 +538,9 @@ internal class BingoHudController(
             if (state.gameStatus.isDefaultInstance) {
                 clearPostgameScreenState()
                 return@register
+            }
+            if (state.gameOver == null) {
+                state.gameState = GameState.PLAYING
             }
             eventBus.emit(HudStateChangedEvent, Unit)
         }

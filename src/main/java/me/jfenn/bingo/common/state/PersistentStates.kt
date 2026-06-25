@@ -8,8 +8,8 @@ import me.jfenn.bingo.platform.register
 internal class PersistentStates(
     persistentStateManager: IPersistentStateManager,
     private val configService: ConfigService,
-) {
-    val bingo = persistentStateManager.register<BingoState>(MOD_ID_BINGO) {
+) : ResetPersistentStates {
+    override val bingo = persistentStateManager.register<BingoState>(MOD_ID_BINGO) {
         BingoState(options = configService.options)
     }
 }

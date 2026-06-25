@@ -24,7 +24,7 @@ internal class TeamService(
     private val playerManager: IPlayerManager,
     private val mapService: IMapService,
     private val permissions: IPermissionsApi,
-) {
+) : ResetTeamService {
 
     fun getPlayerTeam(player: IPlayerHandle): BingoTeam? {
         val team = teamManager.getPlayerTeam(player.player) ?: return null
@@ -146,7 +146,7 @@ internal class TeamService(
             }
     }
 
-    fun clearTeams() {
+    override fun clearTeams() {
         for (team in data.teamPresets.keys + state.teams.keys) {
             teamManager.deleteTeam(team.id)
         }

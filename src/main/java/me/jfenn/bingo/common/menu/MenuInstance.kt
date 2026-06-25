@@ -201,6 +201,7 @@ internal class MenuInstance(
         }
 
         info.onUpdate(entity)
+        entityManager.syncEntityData(entity)
         return entity
     }
 

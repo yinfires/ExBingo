@@ -7,11 +7,14 @@ import me.jfenn.bingo.common.options.BingoOptions
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.team.BingoTeam
 import me.jfenn.bingo.common.team.TeamService
+import me.jfenn.bingo.impl.collectEntityChunkLifecycleDiagnostics
+import me.jfenn.bingo.impl.isEntityChunkLifecycleHealthy
 import me.jfenn.bingo.platform.IExecutors
 import me.jfenn.bingo.platform.IPlayerHandle
 import me.jfenn.bingo.platform.IServerWorld
 import me.jfenn.bingo.platform.IServerWorldFactory
 import me.jfenn.bingo.platform.block.BlockPosition
+import net.minecraft.world.level.ChunkPos
 import org.slf4j.Logger
 import java.util.concurrent.CompletableFuture
 import java.util.function.Function
@@ -70,7 +73,7 @@ internal class SpawnService(
      */
     fun createSpawnpoints(): CompletableFuture<Void> {
         val world = getSpawnDimension()
-        val spread = spreadPlayersFactory.forWorld(world)
+        val spread = spreadPlayersFactory.forWorld(world, state.gameId)
 
         val distance = options.spawnDistance
         return if (distance <= 0) {
@@ -99,6 +102,14 @@ internal class SpawnService(
     }
 
     fun teleportToLobby(player: IPlayerHandle) {
+        teleportToLobby(player, force = false)
+    }
+
+    fun forceTeleportToLobby(player: IPlayerHandle) {
+        teleportToLobby(player, force = true)
+    }
+
+    private fun teleportToLobby(player: IPlayerHandle, force: Boolean) {
         val lobbyWorld = serverWorldFactory.listWorlds()
             .find { it.identifier == LOBBY_WORLD_IDENTIFIER }
 
@@ -108,13 +119,23 @@ internal class SpawnService(
         }
 
         val spawn = state.lobbySpawnPos
-        player.teleport(lobbyWorld, spawn.toVector3d(), state.lobbySpawnYaw, 0f)
+        if (force) {
+            player.forceTeleport(lobbyWorld, spawn.toVector3d(), state.lobbySpawnYaw, 0f)
+        } else {
+            player.teleport(lobbyWorld, spawn.toVector3d(), state.lobbySpawnYaw, 0f)
+        }
         player.setSpawnPoint(
             world = lobbyWorld,
             spawn = spawn,
             angle = state.lobbySpawnYaw,
             forced = true,
             sendMessage = false,
+        )
+        logPlayerAttachmentAfterTeleport(
+            stage = if (force) "forceTeleportToLobby" else "teleportToLobby",
+            player = player,
+            expectedWorld = lobbyWorld,
+            force = force,
         )
     }
 
@@ -144,6 +165,107 @@ internal class SpawnService(
             forced = true,
             sendMessage = false,
         )
+        logPlayerAttachmentAfterTeleport(
+            stage = "teleportPlayer",
+            player = player,
+            expectedWorld = world,
+            force = false,
+        )
+    }
+
+    private fun logPlayerAttachmentAfterTeleport(
+        stage: String,
+        player: IPlayerHandle,
+        expectedWorld: IServerWorld,
+        force: Boolean,
+    ) {
+        val playerWorld = player.serverWorld
+        val playerEntity = player.player
+        val currentWorld = serverWorldFactory.listWorlds()
+            .firstOrNull { it.world.dimension() == playerWorld.dimension() }
+            ?.world
+        val attached = currentWorld === playerWorld
+        val expectedAttached = expectedWorld.world === playerWorld
+        val currentWorldId = currentWorld?.let { System.identityHashCode(it).toString() } ?: "null"
+        val blockPos = playerEntity.blockPosition()
+        val chunkPos = playerEntity.chunkPosition()
+        val chunkLong = ChunkPos.asLong(blockPos)
+        val distanceManager = playerWorld.chunkSource.chunkMap.getDistanceManager()
+        val inLevelPlayers = playerWorld.players().contains(playerEntity)
+        val entityTracked = playerWorld.getEntity(playerEntity.uuid) === playerEntity
+        val entitiesLoaded = playerWorld.areEntitiesLoaded(chunkLong)
+        val entityTicking = playerWorld.isPositionEntityTicking(blockPos)
+        val blockTicking = playerWorld.shouldTickBlocksAt(chunkLong)
+        val distanceEntityTicking = distanceManager.inEntityTickingRange(chunkLong)
+        val distanceBlockTicking = distanceManager.inBlockTickingRange(chunkLong)
+        val chunkMapWatching = playerWorld.chunkSource.chunkMap.getPlayers(chunkPos, false).contains(playerEntity)
+        val entityLifecycle = collectEntityChunkLifecycleDiagnostics(playerWorld, chunkLong)
+        val message = "[ResetDiag] [SpawnService] {}: player={}, dimension={}, playerLevel={}, currentLevel={}, expectedLevel={}, attached={}, expectedAttached={}, inLevelPlayers={}, entityTracked={}, entitiesLoaded={}, entityTicking={}, blockTicking={}, distanceEntityTicking={}, distanceBlockTicking={}, chunkMapWatching={}, entityLoadStatus={}, entityVisibility={}, entityLoadingInboxSize={}, gameMode={}, blockPos={}, force={}"
+        if (attached && expectedAttached && inLevelPlayers && entityTracked && entitiesLoaded && entityTicking && blockTicking && distanceEntityTicking && distanceBlockTicking && chunkMapWatching && isEntityChunkLifecycleHealthy(entityLifecycle.loadStatus, entityLifecycle.visibility)) {
+            log.info(
+                message,
+                stage,
+                player.playerName,
+                playerWorld.dimension().location(),
+                System.identityHashCode(playerWorld),
+                currentWorldId,
+                System.identityHashCode(expectedWorld.world),
+                attached,
+                expectedAttached,
+                inLevelPlayers,
+                entityTracked,
+                entitiesLoaded,
+                entityTicking,
+                blockTicking,
+                distanceEntityTicking,
+                distanceBlockTicking,
+                chunkMapWatching,
+                entityLifecycle.loadStatus,
+                entityLifecycle.visibility,
+                entityLifecycle.loadingInboxSize,
+                player.gameMode,
+                player.blockPos,
+                force,
+            )
+        } else {
+            if (distanceEntityTicking && distanceBlockTicking && (!entitiesLoaded || !entityTicking)) {
+                log.error(
+                    "[ResetDiag] ERROR entity manager chunk lifecycle not ready after {}: player={} chunk=({}, {}) entityLoadStatus={} entityVisibility={} loadingInboxSize={}",
+                    stage,
+                    player.playerName,
+                    chunkPos.x,
+                    chunkPos.z,
+                    entityLifecycle.loadStatus,
+                    entityLifecycle.visibility,
+                    entityLifecycle.loadingInboxSize,
+                )
+            }
+            log.error(
+                message,
+                stage,
+                player.playerName,
+                playerWorld.dimension().location(),
+                System.identityHashCode(playerWorld),
+                currentWorldId,
+                System.identityHashCode(expectedWorld.world),
+                attached,
+                expectedAttached,
+                inLevelPlayers,
+                entityTracked,
+                entitiesLoaded,
+                entityTicking,
+                blockTicking,
+                distanceEntityTicking,
+                distanceBlockTicking,
+                chunkMapWatching,
+                entityLifecycle.loadStatus,
+                entityLifecycle.visibility,
+                entityLifecycle.loadingInboxSize,
+                player.gameMode,
+                player.blockPos,
+                force,
+            )
+        }
     }
 
     sealed class GetSpawnpointResult {
@@ -200,7 +322,7 @@ internal class SpawnService(
         return when (val result = getTeamSpawnpointInternal(team)) {
             is GetSpawnpointResult.SearchChunk -> {
                 val world = getSpawnDimension()
-                val spread = spreadPlayersFactory.forWorld(world)
+                val spread = spreadPlayersFactory.forWorld(world, state.gameId)
                 val future = spread.findSpawnPosAsync(result.startChunk)
 
                 team.spawnpointFuture = future
@@ -225,7 +347,7 @@ internal class SpawnService(
         return when (val result = getTeamSpawnpointInternal(team)) {
             is GetSpawnpointResult.SearchChunk -> {
                 val world = getSpawnDimension()
-                val spread = spreadPlayersFactory.forWorld(world)
+                val spread = spreadPlayersFactory.forWorld(world, state.gameId)
                 val spawnPos = spread.findSpawnPos(result.startChunk)
 
                 onSpawnpointUpdated(team, spawnPos)

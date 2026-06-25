@@ -150,6 +150,10 @@ object NeoForgePacketRegistry {
         }.getOrDefault(true)
     }
 
+    internal fun registeredC2SIds(): Set<ResourceLocation> = c2s.keys.toSet()
+
+    internal fun registeredS2CIds(): Set<ResourceLocation> = s2c.keys.toSet()
+
     private fun <T> typeOf(id: ResourceLocation): CustomPacketPayload.Type<BingoPayload<T>> {
         return CustomPacketPayload.Type(id)
     }

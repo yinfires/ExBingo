@@ -12,8 +12,10 @@ import me.jfenn.bingo.platform.player.PlayerProfile
 import me.jfenn.bingo.platform.scope.BingoKoin
 import me.jfenn.bingo.platform.text.IText
 import net.minecraft.commands.SharedSuggestionProvider
+import net.minecraft.core.BlockPos
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.EquipmentSlot
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.*
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.OutgoingChatMessage
@@ -24,12 +26,14 @@ import net.minecraft.network.protocol.game.ClientboundGameEventPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacket
 import net.minecraft.network.protocol.game.ClientboundSoundPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
+import net.minecraft.network.protocol.game.ClientboundRespawnPacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.TicketType
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundSource
@@ -38,6 +42,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.world.item.UseAnim
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.level.GameType
+import net.minecraft.world.level.ChunkPos
 import org.joml.Vector3d
 import java.util.*
 
@@ -361,7 +366,59 @@ class PlayerHandle(
     }
 
     override fun teleport(world: IServerWorld, pos: Vector3d, yaw: Float, pitch: Float) {
+        val oldLevel = player.serverLevel()
+        val newLevel = world.world
+        val chunkTrackingOps = ServerLevelPlayerChunkTrackingOps(
+            level = newLevel,
+            player = player,
+            chunkPos = ChunkPos(BlockPos.containing(pos.x, pos.y, pos.z)),
+        )
+        if (oldLevel !== newLevel) {
+            preparePlayerChunkTracking(chunkTrackingOps)
+        }
         player.teleportTo(world.world, pos.x, pos.y, pos.z, emptySet(), yaw, pitch)
+        if (oldLevel !== newLevel) {
+            finishPlayerChunkTracking(chunkTrackingOps)
+        }
+    }
+
+    override fun forceTeleport(world: IServerWorld, pos: Vector3d, yaw: Float, pitch: Float) {
+        val oldLevel = player.serverLevel()
+        val newLevel = world.world
+        val playerList = player.server.playerList
+        val levelData = newLevel.levelData
+        val chunkPos = ChunkPos(BlockPos.containing(pos.x, pos.y, pos.z))
+        val chunkTrackingOps = ServerLevelPlayerChunkTrackingOps(newLevel, player, chunkPos)
+
+        preparePlayerChunkTracking(chunkTrackingOps)
+        player.setCamera(player)
+        player.stopRiding()
+
+        if (oldLevel !== newLevel) {
+            player.connection.send(ClientboundRespawnPacket(player.createCommonSpawnInfo(newLevel), ClientboundRespawnPacket.KEEP_ALL_DATA))
+            player.connection.send(ClientboundChangeDifficultyPacket(levelData.difficulty, levelData.isDifficultyLocked))
+            playerList.sendPlayerPermissionLevel(player)
+
+            oldLevel.removePlayerImmediately(player, Entity.RemovalReason.CHANGED_DIMENSION)
+            player.revive()
+            player.setServerLevel(newLevel)
+            player.moveTo(pos.x, pos.y, pos.z, yaw, pitch)
+            newLevel.addDuringTeleport(player)
+            finishPlayerChunkTracking(chunkTrackingOps)
+            player.connection.teleport(pos.x, pos.y, pos.z, yaw, pitch)
+            player.connection.resetPosition()
+        } else {
+            player.connection.teleport(pos.x, pos.y, pos.z, yaw, pitch)
+            player.connection.resetPosition()
+            finishPlayerChunkTracking(chunkTrackingOps)
+        }
+
+        player.hasChangedDimension()
+        player.connection.send(ClientboundPlayerAbilitiesPacket(player.abilities))
+        playerList.sendLevelInfo(player, newLevel)
+        playerList.sendAllPlayerInfo(player)
+        playerList.sendActivePlayerEffects(player)
+        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(player)
     }
 
     override fun setSpawnPoint(
@@ -399,13 +456,15 @@ class PlayerHandle(
         player.containerMenu.sendAllDataToRemote()
     }
 
-    override fun resyncClientState() {
+    override fun resyncClientState(syncPosition: Boolean) {
         val level = player.serverLevel()
         val levelData = level.levelData
         val playerList = player.server.playerList
 
-        player.connection.teleport(player.x, player.y, player.z, player.yRot, player.xRot)
-        player.connection.resetPosition()
+        if (syncPosition) {
+            player.connection.teleport(player.x, player.y, player.z, player.yRot, player.xRot)
+            player.connection.resetPosition()
+        }
         player.connection.send(ClientboundChangeDifficultyPacket(levelData.difficulty, levelData.isDifficultyLocked))
         player.connection.send(
             ClientboundGameEventPacket(
@@ -422,8 +481,6 @@ class PlayerHandle(
         player.onUpdateAbilities()
         syncInventory()
 
-        player.setInvisible(true)
-        player.setInvisible(false)
         val dataValues = player.entityData.packDirty() ?: player.entityData.nonDefaultValues
         if (dataValues != null) {
             val packet = ClientboundSetEntityDataPacket(player.id, dataValues)

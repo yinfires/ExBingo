@@ -5,6 +5,7 @@ import me.jfenn.bingo.platform.*
 import me.jfenn.bingo.platform.item.IItemStack
 import me.jfenn.bingo.platform.text.IText
 import me.jfenn.bingo.platform.text.ITextFactory
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.EntityType as MinecraftEntityType
@@ -69,6 +70,15 @@ class EntityManagerImpl(
 
     override fun spawnEntity(world: ServerLevel, entity: IEntity): Boolean {
         return world.addFreshEntity(entity.entity)
+    }
+
+    override fun syncEntityData(entity: IEntity) {
+        val minecraftEntity = entity.entity
+        val dataValues = minecraftEntity.entityData.packDirty()
+            ?: minecraftEntity.entityData.nonDefaultValues
+            ?: return
+        val level = minecraftEntity.level() as? ServerLevel ?: return
+        level.chunkSource.broadcastAndSend(minecraftEntity, ClientboundSetEntityDataPacket(minecraftEntity.id, dataValues))
     }
 
     override fun iterateEntities(world: ServerLevel): Sequence<IEntity> {

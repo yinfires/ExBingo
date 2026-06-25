@@ -504,7 +504,8 @@ internal class BingoHudScreen(
     }
 
     override fun shouldPause() =
-        gameOver == null &&
+        !client.isInSingleplayer &&
+                gameOver == null &&
                 config.client.cardPausesGame &&
                 state.cards.isNotEmpty() &&
                 state.gameState == GameState.PLAYING &&

@@ -72,6 +72,11 @@ sourceSets {
             ]
         }
     }
+    test {
+        compileClasspath += files(layout.buildDirectory.file("moddev/artifacts/neoforge-${neo_version}-merged.jar"))
+        runtimeClasspath += files(layout.buildDirectory.file("moddev/artifacts/neoforge-${neo_version}-merged.jar"))
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
 }
 
 neoForge {
@@ -131,6 +136,9 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
     implementation "org.jetbrains.kotlin:kotlin-reflect:${kotlin_version}"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:${kotlinx_serialization_version}"
+
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:${kotlin_version}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     implementation "io.insert-koin:koin-core-jvm:${koin_version}"
     implementation "io.insert-koin:koin-logger-slf4j:${koin_version}"
@@ -259,6 +267,20 @@ tasks.withType(JavaCompile).configureEach {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 21
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    dependsOn(tasks.named('createMinecraftArtifacts'))
+    classpath += files(layout.buildDirectory.file("moddev/artifacts/neoforge-${neo_version}-merged.jar"))
+}
+
+tasks.named('compileTestKotlin').configure {
+    dependsOn(tasks.named('createMinecraftArtifacts'))
+}
+
+tasks.named('compileTestJava').configure {
+    dependsOn(tasks.named('createMinecraftArtifacts'))
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {

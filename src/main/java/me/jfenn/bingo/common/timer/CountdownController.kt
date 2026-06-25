@@ -116,7 +116,7 @@ internal class CountdownController(
         }
     }
 
-    fun shouldPreventActions() = state.state == GameState.LOADING || state.state == GameState.COUNTDOWN
+    fun shouldPreventActions() = CountdownLockPolicy.shouldPreventActions(state.state)
 
     init {
         events.onEnter(GameState.COUNTDOWN) {
@@ -127,7 +127,7 @@ internal class CountdownController(
         }
 
         events.onStateChange { (fromState, toState) ->
-            val isLockedState = toState == GameState.LOADING || toState == GameState.COUNTDOWN || toState == GameState.POSTGAME
+            val isLockedState = CountdownLockPolicy.shouldFreezeTicks(toState)
 
             if (state.isLobbyMode)
                 tickManager.setFrozen(isLockedState)

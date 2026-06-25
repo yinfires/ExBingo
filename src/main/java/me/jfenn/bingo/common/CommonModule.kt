@@ -7,6 +7,7 @@ import me.jfenn.bingo.common.autorestart.ResetOnLeaveController
 import me.jfenn.bingo.common.autorestart.ResetService
 import me.jfenn.bingo.common.bossbar.BossBarController
 import me.jfenn.bingo.common.bossbar.BossBarService
+import me.jfenn.bingo.common.bossbar.ResetBossBarService
 import me.jfenn.bingo.common.card.CardService
 import me.jfenn.bingo.common.card.TagExpansionService
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterCommand
@@ -38,6 +39,7 @@ import me.jfenn.bingo.common.lobby.LobbyModeController
 import me.jfenn.bingo.common.lobby.LobbyModeService
 import me.jfenn.bingo.common.map.*
 import me.jfenn.bingo.common.menu.MenuController
+import me.jfenn.bingo.common.menu.RuntimeLobbyController
 import me.jfenn.bingo.common.menu.tooltips.TooltipController
 import me.jfenn.bingo.common.menu.tooltips.TooltipState
 import me.jfenn.bingo.common.options.OptionsService
@@ -50,6 +52,7 @@ import me.jfenn.bingo.common.scope.BingoScope
 import me.jfenn.bingo.common.scope.ScopeManager
 import me.jfenn.bingo.common.scoreboard.ScoreboardController
 import me.jfenn.bingo.common.scoreboard.ScoreboardDataController
+import me.jfenn.bingo.common.scoreboard.ResetScoreboardService
 import me.jfenn.bingo.common.scoreboard.ScoreboardService
 import me.jfenn.bingo.common.scoring.GameMessageController
 import me.jfenn.bingo.common.scoring.GameMessageService
@@ -59,6 +62,7 @@ import me.jfenn.bingo.common.spawn.*
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.PersistentStateManager
 import me.jfenn.bingo.common.state.PersistentStates
+import me.jfenn.bingo.common.state.ResetPersistentStates
 import me.jfenn.bingo.common.stats.*
 import me.jfenn.bingo.common.team.*
 import me.jfenn.bingo.common.text.MessageService
@@ -204,7 +208,7 @@ val commonModule = module {
         scopedOf(::BingoApiImpl) bind IBingoApi::class
 
         scopedOf(::PersistentStateManager) bind IPersistentStateManager::class
-        scopedOf(::PersistentStates)
+        scopedOf(::PersistentStates) bind ResetPersistentStates::class
         scoped<BingoState> {
             get<IPersistentStateManager>().getFromWorld(
                 type = get<PersistentStates>().bingo,
@@ -291,7 +295,7 @@ val commonModule = module {
         scopedOf(::MapRenderService)
         scopedOf(::CardViewService)
         scopedOf(::CardImageService)
-        scopedOf(::ScoreboardService)
+        scopedOf(::ScoreboardService) bind ResetScoreboardService::class
 
         scopedOf(::GameStatusController)
         scopedOf(::GameMessageService)
@@ -302,9 +306,9 @@ val commonModule = module {
 
         scopedOf(::TooltipState)
         scopedOf(::TooltipController)
-        scopedOf(::MenuController)
+        scopedOf(::MenuController) bind RuntimeLobbyController::class
 
-        scopedOf(::BossBarService)
+        scopedOf(::BossBarService) bind ResetBossBarService::class
         scopedOf(::BossBarController)
 
         scopedOf(::BingoMapController)
@@ -327,11 +331,11 @@ val commonModule = module {
         scopedOf(::SpawnService)
         scopedOf(::SpawnKitService)
         scopedOf(SpreadPlayers::Factory)
-        scopedOf(::PlayerController)
+        scopedOf(::PlayerController) bind LobbyPlayerRestorer::class
         scopedOf(::SpawnPreloadingController)
 
         scopedOf(::OfflinePlayerCache)
-        scopedOf(::TeamService)
+        scopedOf(::TeamService) bind ResetTeamService::class
         scopedOf(::TeamController)
 
         scopedOf(::CountdownService)

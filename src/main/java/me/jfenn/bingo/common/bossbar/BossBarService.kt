@@ -17,7 +17,7 @@ internal class BossBarService(
     private val playerSettingsService: PlayerSettingsService,
     private val teamService: TeamService,
     private val bossBarManager: IBossBarManager
-) : BingoComponent() {
+) : BingoComponent(), ResetBossBarService {
 
     private fun createBossbar(team: BingoTeam?): IBossBar {
         val id = "$MOD_ID_BINGO:${team?.id ?: "preview"}"
@@ -48,7 +48,7 @@ internal class BossBarService(
         }
     }
 
-    fun clearBossBars() {
+    override fun clearBossBars() {
         for (bossBar in bossBars.values) {
             bossBarManager.remove(bossBar)
         }

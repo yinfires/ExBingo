@@ -49,8 +49,7 @@ internal class PlayerController(
     private val playerManager: IPlayerManager,
     private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
     private val serverWorldFactory: IServerWorldFactory,
-) : BingoComponent() {
-
+) : BingoComponent(), LobbyPlayerRestorer {
     private fun updateVanishStatus(
         player: IPlayerHandle
     ): Boolean {
@@ -106,17 +105,54 @@ internal class PlayerController(
             }
         }
 
+        state.players[player.uuid] = newPlayerState
+
         // This indicates that a player is starting the game, or has logged back on after a game has started
         // Note: if force-gamemode=true in server.properties, the player's gamemode might not match even if the state has not changed
         // (this also happens on LAN)
-        val preGameStates = arrayOf(GameState.PREGAME, GameState.STARTING, GameState.PRELOADING, GameState.LOADING, GameState.COUNTDOWN)
-        val isRespawnNeeded = (newPlayerState != oldPlayerState || forceReset) && (state.state in preGameStates || isOnActiveTeam) && state.state != GameState.POSTGAME
+        val isRespawnNeeded = shouldRespawnPlayer(
+            oldPlayerState = oldPlayerState,
+            newPlayerState = newPlayerState,
+            state = state.state,
+            forceReset = forceReset,
+            isOnActiveTeam = isOnActiveTeam,
+        )
+        val isRedundantPlayingRespawn =
+            state.state == GameState.PLAYING &&
+            oldPlayerState.lastGameId != null &&
+            oldPlayerState.lastGameId == newPlayerState.lastGameId &&
+            oldPlayerState.lastState in setOf(GameState.LOADING, GameState.COUNTDOWN)
         val isStuckInLobby = player.serverWorld == lobbyWorld && state.state != GameState.PREGAME
         val isStuckInWorld = player.serverWorld != lobbyWorld && state.state == GameState.PREGAME
+        val hasCountdownInvisibility = player.getEffects()
+            .any { it.type == EffectType.INVISIBILITY && it.duration < 0 }
         log.info(
-            "[PlayerController] updateGameMode({}): state={}, targetGameMode={}, currentGameMode={}, isAlive={}, world={}, isRespawnNeeded={}, isStuckInLobby={}, isStuckInWorld={}, forceReset={}",
-            player.playerName, state.state, gameMode, player.gameMode, player.isAlive, player.serverWorld.dimension().location(), isRespawnNeeded, isStuckInLobby, isStuckInWorld, forceReset
+            "[PlayerController] updateGameMode({}): state={}, gameId={}, targetGameMode={}, currentGameMode={}, isAlive={}, world={}#{}, team={}, activeTeam={}, countdownInvisible={}, isRespawnNeeded={}, isRedundantPlayingRespawn={}, isStuckInLobby={}, isStuckInWorld={}, forceReset={}",
+            player.playerName,
+            state.state,
+            state.gameId,
+            gameMode,
+            player.gameMode,
+            player.isAlive,
+            player.serverWorld.dimension().location(),
+            System.identityHashCode(player.serverWorld),
+            team?.key?.id,
+            isOnActiveTeam,
+            hasCountdownInvisibility,
+            isRespawnNeeded,
+            isRedundantPlayingRespawn,
+            isStuckInLobby,
+            isStuckInWorld,
+            forceReset
         )
+        if (isRedundantPlayingRespawn) {
+            log.info(
+                "[PlayerController] Suppressing redundant PLAYING respawn after {} for {} in gameId={}",
+                oldPlayerState.lastState,
+                player.playerName,
+                state.gameId,
+            )
+        }
         if (isRespawnNeeded || isStuckInLobby || isStuckInWorld) {
             if (!player.isAlive) {
                 log.debug("[PlayerController] respawnPlayer({}, {})", player.playerName, player.uuid)
@@ -126,7 +162,6 @@ internal class PlayerController(
             }
 
             respawnPlayer(player)
-            state.players[player.uuid] = newPlayerState
         }
 
         if (player.gameMode != gameMode) {
@@ -141,7 +176,7 @@ internal class PlayerController(
         }
     }
 
-    fun restoreLobbyPlayerAfterReset(player: IPlayerHandle) {
+    override fun restoreLobbyPlayerAfterReset(player: IPlayerHandle) {
         if (!state.isLobbyMode) {
             log.error("[PlayerController] Attempted restoreLobbyPlayerAfterReset, but isLobbyMode=false!")
             return
@@ -153,7 +188,7 @@ internal class PlayerController(
             stack.count = 0
         }
 
-        spawnService.teleportToLobby(player)
+        spawnService.forceTeleportToLobby(player)
 
         state.players[player.uuid] = PlayerState(
             lastGameId = state.gameId,
@@ -168,7 +203,44 @@ internal class PlayerController(
         player.abilities.allowFlying = false
         player.sendAbilitiesUpdate()
         updateVanishStatus(player)
-        player.syncInventory()
+        player.resyncClientState(syncPosition = true)
+        val playerWorld = player.serverWorld
+        val lobbyWorld = serverWorldFactory.listWorlds()
+            .find { it.identifier == LOBBY_WORLD_IDENTIFIER }
+            ?.world
+        val attached = playerWorld === lobbyWorld
+        val message = "[ResetDiag] [PlayerController] restoreLobbyPlayerAfterReset({}): state={}, gameId={}, dimension={}, playerLevel={}, lobbyLevel={}, attached={}, gameMode={}, spectator={}, alive={}, allowFlying={}, team={}, blockPos={}"
+        if (attached) log.info(
+            message,
+            player.playerName,
+            state.state,
+            state.gameId,
+            playerWorld.dimension().location(),
+            System.identityHashCode(playerWorld),
+            lobbyWorld?.let { System.identityHashCode(it).toString() } ?: "null",
+            attached,
+            player.gameMode,
+            player.isSpectator,
+            player.isAlive,
+            player.abilities.allowFlying,
+            teamService.getPlayerTeam(player)?.key?.id,
+            player.blockPos,
+        ) else log.error(
+            message,
+            player.playerName,
+            state.state,
+            state.gameId,
+            playerWorld.dimension().location(),
+            System.identityHashCode(playerWorld),
+            lobbyWorld?.let { System.identityHashCode(it).toString() } ?: "null",
+            attached,
+            player.gameMode,
+            player.isSpectator,
+            player.isAlive,
+            player.abilities.allowFlying,
+            teamService.getPlayerTeam(player)?.key?.id,
+            player.blockPos,
+        )
     }
 
     private fun resetPlayerHealth(player: IPlayerHandle) {
@@ -377,4 +449,31 @@ internal class PlayerController(
         }
     }
 
+}
+
+internal fun shouldRespawnPlayer(
+    oldPlayerState: PlayerState,
+    newPlayerState: PlayerState,
+    state: GameState,
+    forceReset: Boolean,
+    isOnActiveTeam: Boolean,
+): Boolean {
+    val sameGame = oldPlayerState.lastGameId != null && oldPlayerState.lastGameId == newPlayerState.lastGameId
+    if (
+        state == GameState.PLAYING &&
+        sameGame &&
+        oldPlayerState.lastState in setOf(GameState.LOADING, GameState.COUNTDOWN)
+    ) {
+        return false
+    }
+
+    return (newPlayerState != oldPlayerState || forceReset) &&
+        (state in arrayOf(
+            GameState.PREGAME,
+            GameState.STARTING,
+            GameState.PRELOADING,
+            GameState.LOADING,
+            GameState.COUNTDOWN,
+        ) || isOnActiveTeam) &&
+        state != GameState.POSTGAME
 }

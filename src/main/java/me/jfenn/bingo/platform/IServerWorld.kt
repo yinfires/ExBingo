@@ -12,7 +12,7 @@ interface IServerWorldFactory {
     val overworld: IServerWorld
     fun forWorld(world: ServerLevel): IServerWorld
     fun listWorlds(): List<IServerWorld>
-    fun recreateWorlds(seed: Long, callback: () -> Unit)
+    fun recreateWorlds(seed: Long, reattachPlayers: Boolean = true, callback: () -> Unit)
 }
 
 interface IServerWorld {

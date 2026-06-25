@@ -12,6 +12,7 @@ interface IEntityManager {
     fun <T: IEntity> createEntity(type: EntityType<T>, world: ServerLevel): T
     fun getEntity(world: ServerLevel, uuid: UUID): IEntity?
     fun spawnEntity(world: ServerLevel, entity: IEntity): Boolean
+    fun syncEntityData(entity: IEntity)
     fun iterateEntities(world: ServerLevel): Sequence<IEntity>
 }
 

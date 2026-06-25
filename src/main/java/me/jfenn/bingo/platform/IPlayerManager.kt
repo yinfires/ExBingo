@@ -89,6 +89,7 @@ interface IPlayerHandle : ILivingEntity {
 
     fun respawn(): IPlayerHandle
     fun teleport(world: IServerWorld, pos: Vector3d, yaw: Float, pitch: Float)
+    fun forceTeleport(world: IServerWorld, pos: Vector3d, yaw: Float, pitch: Float)
     fun setSpawnPoint(world: IServerWorld, spawn: BlockPosition, angle: Float, forced: Boolean, sendMessage: Boolean)
 
     fun hasPermissionLevel(level: Int): Boolean
@@ -115,11 +116,11 @@ interface IPlayerHandle : ILivingEntity {
 
     /**
      * Re-assert the player's client-visible state (gamemode, abilities, and the player entity's
-     * tracked data such as the invisibility flag) by forcing fresh packets to the client. Used
-     * after a game reset, where the server-side state is correct but the client can be left
-     * desynced (e.g. rendering the player as an invisible spectator) across the world recreation.
+     * tracked data such as the invisibility flag) by forcing fresh packets to the client. Callers can
+     * disable the optional position sync only when an authoritative teleport packet has already been
+     * sent and should not be repeated.
      */
-    fun resyncClientState()
+    fun resyncClientState(syncPosition: Boolean = true)
 }
 
 interface IPlayerAbilities {

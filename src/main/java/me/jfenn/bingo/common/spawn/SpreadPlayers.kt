@@ -8,8 +8,10 @@ import me.jfenn.bingo.platform.block.BlockPosition
 import me.jfenn.bingo.platform.world.IChunk
 import me.jfenn.bingo.platform.world.IChunkHeightmap
 import org.slf4j.Logger
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 import kotlin.math.cos
 import kotlin.math.sign
 import kotlin.math.sin
@@ -20,6 +22,7 @@ class SpreadPlayers(
     private val world: IServerWorld,
     private val invalidSpawnBiomes: ITagContents<IRegistryEntry.Biome>,
     private val invalidSpawnBlocks: ITagContents<IRegistryEntry.Block>,
+    private val roundSeed: UUID? = null,
 ) {
 
     class Factory(
@@ -27,12 +30,13 @@ class SpreadPlayers(
         private val taskExecutor: IExecutors.IServerTaskExecutor,
         private val tagAccessor: ITagAccessor,
     ) {
-        fun forWorld(world: IServerWorld) = SpreadPlayers(
+        fun forWorld(world: IServerWorld, roundSeed: UUID? = null) = SpreadPlayers(
             log = log,
             taskExecutor = taskExecutor,
             world = world,
             invalidSpawnBiomes = tagAccessor.getBiomeTag("$MOD_ID_BINGO:invalid_spawn"),
             invalidSpawnBlocks = tagAccessor.getBlockTag("$MOD_ID_BINGO:invalid_spawn"),
+            roundSeed = roundSeed,
         )
     }
 
@@ -56,13 +60,24 @@ class SpreadPlayers(
         log.info("[SpreadPlayers] Initialized in dimension ${world.identifier} with coordinateScale=$coordinateScale, logicalHeight=$logicalHeight, bottomY=$bottomY, seaLevel=$seaLevel")
     }
 
+    private companion object {
+        const val ROUND_MIN_RADIUS_CHUNKS = 96
+        const val ROUND_RADIUS_VARIANCE_CHUNKS = 192
+    }
+
     private fun spreadGroups(count: Int, distance: Int): List<Pair<Int, Int>> {
         val center = worldBorderCenterInWorld.toChunkPos()
+        val random = roundSeed?.let { Random(it.hashCode()) }
+        val roundRadius = random
+            ?.let { ROUND_MIN_RADIUS_CHUNKS + it.nextInt(ROUND_RADIUS_VARIANCE_CHUNKS + 1) }
+            ?.toDouble()
+            ?: 0.0
         val radius = ((distance * count) / (2 * Math.PI))
+            .coerceAtLeast(roundRadius)
             .coerceAtMost((worldBorder.maxRadius / 16).toDouble() - 16.0)
             .coerceAtLeast(0.0)
 
-        val theta = 2 * Math.PI * Math.random()
+        val theta = 2 * Math.PI * (random?.nextDouble() ?: Math.random())
 
         return buildList {
             for (i in 0 until count) {

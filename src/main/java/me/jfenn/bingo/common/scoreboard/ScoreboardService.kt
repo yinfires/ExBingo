@@ -25,7 +25,7 @@ internal class ScoreboardService(
     private val mapItemService: MapItemService,
     private val textSerializer: ITextSerializer,
     private val teamService: TeamService,
-) {
+) : ResetScoreboardService {
 
     fun getScoreboardObjective(team: BingoTeam?) : IObjectiveHandle {
         val objectiveName = "bingo_sidebar_" + team?.id?.removePrefix(BINGO_TEAM_PREFIX)
@@ -118,7 +118,7 @@ internal class ScoreboardService(
         view.players = playerUuids
     }
 
-    fun clearScoreboards() {
+    override fun clearScoreboards() {
         for (view in scoreboardViews.values) {
             val objective = scoreboardManager.createDummyObjective(view.objectiveName)
             for (playerId in view.players) {

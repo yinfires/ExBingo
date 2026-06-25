@@ -37,7 +37,6 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.chunk.status.ChunkStatus
 import org.joml.Matrix4d
 import org.joml.Vector3d
-import org.joml.Vector4d
 import org.slf4j.Logger
 import java.io.IOException
 import java.nio.file.Files
@@ -46,6 +45,17 @@ import java.time.Instant
 import java.util.*
 import kotlin.math.atan2
 import kotlin.math.roundToInt
+
+internal data class MenuEntityStats(
+    val current: Int = 0,
+    val stale: Int = 0,
+) {
+    val total: Int get() = current + stale
+
+    override fun toString(): String {
+        return "total=$total,current=$current,stale=$stale"
+    }
+}
 
 internal class MenuController(
     events: ScopedEvents,
@@ -64,7 +74,7 @@ internal class MenuController(
     private val serverWorldFactory: IServerWorldFactory,
     private val taskExecutor: IExecutors.IServerTaskExecutor,
     private val lobbyWorldService: LobbyWorldService,
-) : BingoComponent() {
+) : BingoComponent(), RuntimeLobbyController {
 
     private var menu: MenuInstance? = null
     private var suppressNextPregameSpawn = false
@@ -136,18 +146,36 @@ internal class MenuController(
         }
     }
 
-    fun suspendPregameSpawn() {
+    override fun suspendPregameSpawn() {
         suppressNextPregameSpawn = true
     }
 
-    fun menuEntityCount(): Int {
-        val lobbyWorld = server.lobbyWorld ?: return 0
-        return lobbyWorld.allEntities.count { entity ->
-            entity !is Player && entity.tags.any { it.startsWith("bingo-") }
-        }
+    override fun menuEntityStats(): MenuEntityStats {
+        val lobbyWorld = server.lobbyWorld ?: return MenuEntityStats()
+        return menuEntityStats(lobbyWorld)
     }
 
-    fun spawnLobby(lobbyWorld: ServerLevel? = server.lobbyWorld) {
+    fun menuEntityCount(): Int {
+        return menuEntityStats().total
+    }
+
+    private fun menuEntityStats(lobbyWorld: ServerLevel): MenuEntityStats {
+        var current = 0
+        var stale = 0
+        lobbyWorld.allEntities.forEach { entity ->
+            if (entity is Player) return@forEach
+            val bingoTags = entity.tags.filter { it.startsWith("bingo-") }
+            if (bingoTags.isEmpty()) return@forEach
+            if (instanceTag in bingoTags) current++ else stale++
+        }
+        return MenuEntityStats(current = current, stale = stale)
+    }
+
+    override fun spawnLobby() {
+        spawnLobby(server.lobbyWorld)
+    }
+
+    fun spawnLobby(lobbyWorld: ServerLevel?) {
         if (!state.isLobbyMode) {
             log.info("[MenuController] Not spawning lobby, as isLobbyMode=false")
             return
@@ -164,7 +192,16 @@ internal class MenuController(
         }
 
         val menuPos = refreshLobbyState(lobbyWorld)
+        val beforeCleanupStats = menuEntityStats(lobbyWorld)
         cleanupLobby(lobbyWorld)
+        val afterCleanupStats = menuEntityStats(lobbyWorld)
+        if (afterCleanupStats.total > 0) {
+            log.error(
+                "[MenuController] Lobby cleanup left bingo entities behind: before={}, after={}",
+                beforeCleanupStats,
+                afterCleanupStats,
+            )
+        }
 
         // Regenerate our instance tag so any menu/team-picker entities that survived from a
         // previous lobby instance now carry an old tag and can be discarded.
@@ -186,13 +223,21 @@ internal class MenuController(
         }
 
         spawnTeamEntities(lobbyWorld)
+        val afterSpawnStats = menuEntityStats(lobbyWorld)
+        if (afterSpawnStats.stale > 0) {
+            log.error("[MenuController] Lobby spawned with stale bingo entities still present: {}", afterSpawnStats)
+        } else {
+            log.info("[MenuController] Lobby entity stats after spawn: {}", afterSpawnStats)
+        }
     }
 
     private fun refreshLobbyState(lobbyWorld: ServerLevel): Matrix4d? {
         val (lobbySpawnPos, lobbySpawnYaw) = getLobbySpawnPosition(lobbyWorld)
         state.lobbySpawnPos = lobbySpawnPos
         state.lobbySpawnYaw = lobbySpawnYaw
-        return getMenuPosition(lobbyWorld)
+        val menuPosition = getMenuPosition(lobbyWorld)
+        clearLobbyMarkerBlocks(lobbyWorld, lobbySpawnPos, menuPosition, getTeamPositions(lobbyWorld))
+        return menuPosition
     }
 
     private fun cleanupLobby(lobbyWorld: ServerLevel?) {
@@ -215,7 +260,7 @@ internal class MenuController(
         entity.discard()
     }
 
-    fun prepareLobbyFiles() = log.measureTime("[MenuController] Preparing the BINGO lobby...") {
+    override fun prepareLobbyFiles() = log.measureTime("[MenuController] Preparing the BINGO lobby...") {
         val storageDir = levelStorage.getLevelSaveDir(LOBBY_WORLD_ID)
             ?.normalize()
             ?: run {
@@ -339,23 +384,7 @@ internal class MenuController(
     }.also { menuPosition ->
         Cache.menuPosition = menuPosition
         Cache.menuPositionKnown = true
-        log.info("Set menu position to ${menuPosition?.transform(Vector4d())}")
-
-        if (menuPosition != null) {
-            val blockPos = Vector4d()
-                .also { menuPosition.transform(it) }
-                .let { BlockPosition(it.x.roundToInt(), it.y.roundToInt(), it.z.roundToInt()) }
-
-            taskExecutor.execute {
-                // schedule the blockstate change, as the chunk might not be loaded yet
-                for (y in blockPos.y-1..blockPos.y+1) {
-                    lobbyWorld.setBlockAndUpdate(
-                        blockPos.copy(y = y).toBlockPos(),
-                        Blocks.AIR.defaultBlockState(),
-                    )
-                }
-            }
-        }
+        log.info("Set menu position to ${menuPosition?.getTranslation(Vector3d())}")
     }
 
     private fun getLobbySpawnPosition(lobbyWorld: ServerLevel): Pair<BlockPosition, Float> = run {
@@ -387,17 +416,12 @@ internal class MenuController(
         Cache.spawnPosition = it
         Cache.spawnPositionKnown = true
         log.info("Set lobby spawnpoint to $it")
-
-        taskExecutor.execute {
-            // schedule the blockstate change, as the chunk might not be loaded yet
-            lobbyWorld.setBlockAndUpdate(it.first.toBlockPos(), Blocks.AIR.defaultBlockState())
-        }
     }
 
-    private fun spawnTeamEntities(lobbyWorld: ServerLevel) {
+    private fun getTeamPositions(lobbyWorld: ServerLevel): Map<BingoTeamKey, BlockPosition> {
         val lobbyWorldImpl: IServerWorld = serverWorldFactory.forWorld(lobbyWorld)
 
-        val teamPositions = if (Cache.teamPositionsKnown) {
+        return if (Cache.teamPositionsKnown) {
             Cache.teamPositions ?: emptyMap()
         } else log.measureTime("[MenuController] Locating team entities...") {
             val ret = mutableMapOf<BingoTeamKey, BlockPosition>()
@@ -422,6 +446,10 @@ internal class MenuController(
             Cache.teamPositions = it
             Cache.teamPositionsKnown = true
         }
+    }
+
+    private fun spawnTeamEntities(lobbyWorld: ServerLevel) {
+        val teamPositions = getTeamPositions(lobbyWorld)
 
         if (teamPositions.isEmpty()) {
             log.warn("[MenuController] No lobby team positions were found. Team picker entities will not be spawned. Expected colored carpets above lodestone blocks in a 48x48 box around the lobby origin.")
@@ -429,13 +457,46 @@ internal class MenuController(
 
         for ((teamKey, blockPos) in teamPositions) {
             val team = data.teamPresets[teamKey] ?: continue
+            clearMarkerBlock(lobbyWorld, blockPos)
             spawnTeamEntity(lobbyWorld, Vector3d(blockPos.x + 0.5, blockPos.y.toDouble(), blockPos.z + 0.5), teamKey, team, instanceTag)
-
-            taskExecutor.execute {
-                // schedule the blockstate change, as the chunk might not be loaded yet
-                lobbyWorld.setBlockAndUpdate(blockPos.toBlockPos(), Blocks.AIR.defaultBlockState())
-            }
         }
+    }
+
+    private fun clearLobbyMarkerBlocks(
+        lobbyWorld: ServerLevel,
+        spawnPosition: BlockPosition,
+        menuPosition: Matrix4d?,
+        teamPositions: Map<BingoTeamKey, BlockPosition>,
+    ) {
+        clearSpawnMarkerBlock(lobbyWorld, spawnPosition)
+        clearMenuMarkerBlocks(lobbyWorld, menuPosition)
+        clearTeamMarkerBlocks(lobbyWorld, teamPositions)
+    }
+
+    private fun clearSpawnMarkerBlock(lobbyWorld: ServerLevel, spawnPosition: BlockPosition) {
+        clearMarkerBlock(lobbyWorld, spawnPosition)
+    }
+
+    private fun clearMenuMarkerBlocks(lobbyWorld: ServerLevel, menuPosition: Matrix4d?) {
+        val blockPos = menuPosition
+            ?.getTranslation(Vector3d())
+            ?.let { BlockPosition(it.x.roundToInt(), it.y.roundToInt(), it.z.roundToInt()) }
+            ?: return
+
+        for (y in blockPos.y - 1..blockPos.y + 1) {
+            clearMarkerBlock(lobbyWorld, blockPos.copy(y = y))
+        }
+    }
+
+    private fun clearTeamMarkerBlocks(lobbyWorld: ServerLevel, teamPositions: Map<BingoTeamKey, BlockPosition>) {
+        for (blockPos in teamPositions.values) {
+            clearMarkerBlock(lobbyWorld, blockPos)
+        }
+    }
+
+    private fun clearMarkerBlock(lobbyWorld: ServerLevel, blockPos: BlockPosition) {
+        lobbyWorld.getChunk(Math.floorDiv(blockPos.x, 16), Math.floorDiv(blockPos.z, 16), ChunkStatus.FULL)
+        lobbyWorld.setBlockAndUpdate(blockPos.toBlockPos(), Blocks.AIR.defaultBlockState())
     }
 
     private fun ServerLevel.loadChunkAt(position: Vector3d) {
