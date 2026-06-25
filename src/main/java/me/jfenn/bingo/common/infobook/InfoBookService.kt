@@ -39,12 +39,21 @@ internal class InfoBookService(
                 text.string(
                     StringKey.IntroWelcome,
                     text.string(StringKey.IntroWelcomeLink).formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE).also {
-                        it.setClickEvent(TextAction.OpenUrl(URL_WIKI))
+                        it.setClickEvent(TextAction.OpenUrl(URL_EXBINGO))
                     },
                 ).formatted(ChatFormatting.BOLD)
             )
             .append("\n")
             .append(textFactory.literal("v$BINGO_VERSION").formatted(ChatFormatting.GRAY))
+            .append("\n\n")
+            .append(
+                text.string(
+                    StringKey.IntroPortNote,
+                    text.string(StringKey.IntroPortNoteLink).formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE).also {
+                        it.setClickEvent(TextAction.OpenUrl(URL_WIKI))
+                    },
+                ).formatted(ChatFormatting.GRAY)
+            )
             .also {
                 if (permissions.hasPermission(player, Permission.CONFIGURE_GAME)) {
                     it.append("\n\n").append(

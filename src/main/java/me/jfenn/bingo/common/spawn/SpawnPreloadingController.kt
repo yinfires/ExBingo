@@ -94,40 +94,63 @@ internal class SpawnPreloadingController(
         }
 
         events.onGameTick {
-            if (state.state != GameState.PRELOADING) return@onGameTick
-            if (chunkFutureList.isEmpty()) return@onGameTick
-
-            val doneCount = chunkFutureList.count { it.isDone }
-            val totalCount = chunkFutureList.size
-            val percentage = doneCount.times(100f)
-                .div(totalCount)
-                .let { String.format("%.0f", it) + "%" }
-
-            val message = text.empty()
-                .append(text.string(StringKey.LobbyLoadingTerrain))
-                .append(" $percentage ($doneCount/$totalCount)")
-
-            val updatePacket = ReadyUpdatePacket(
-                isRunning = true,
-                isReady = true,
-                state = state.state,
-                // remainingDuration only drives the progress bar, so this does not need to be accurate
-                remainingDuration = (totalCount - doneCount).seconds,
-                totalDuration = totalCount.seconds,
-                readyPlayers = 0,
-                totalPlayers = 0,
-                title = text.string(StringKey.LobbyLoadingTerrain),
-                subtitle = text.literal("$percentage ($doneCount/$totalCount)"),
-                canSendReady = false,
-            )
-
-            for (player in playerManager.getPlayers()) {
-                when {
-                    packet.readyUpdateV3.send(player, updatePacket) -> {}
-                    packet.readyUpdateV2.send(player, updatePacket) -> {}
-                    // readyUpdateV1 is intentionally omitted, as it does not support GameState.PRELOADING or custom titles
-                    else -> player.sendHotbarMessage(message)
+            when (state.state) {
+                // Show an empty (0%) progress bar as soon as the "Bingo is starting" title
+                // appears, so the loading bar is visible from the start of STARTING rather than
+                // only flashing during PRELOADING. The spawnpoints are still being computed
+                // asynchronously here, so the exact progress is not yet known.
+                GameState.STARTING -> sendLoadingProgress(doneCount = 0, totalCount = 0)
+                GameState.PRELOADING -> {
+                    if (chunkFutureList.isEmpty()) return@onGameTick
+                    sendLoadingProgress(
+                        doneCount = chunkFutureList.count { it.isDone },
+                        totalCount = chunkFutureList.size,
+                    )
                 }
+                else -> return@onGameTick
+            }
+        }
+    }
+
+    /**
+     * Broadcast the terrain-loading progress bar to all players.
+     *
+     * When [totalCount] is 0 the progress is unknown (e.g. during STARTING, while spawnpoints
+     * are still being computed), so an empty bar is shown without a percentage subtitle.
+     */
+    private fun sendLoadingProgress(doneCount: Int, totalCount: Int) {
+        val hasProgress = totalCount > 0
+        val percentage = if (hasProgress) {
+            doneCount.times(100f).div(totalCount).let { String.format("%.0f", it) + "%" }
+        } else null
+
+        val message = text.empty()
+            .append(text.string(StringKey.LobbyLoadingTerrain))
+            .let { if (percentage != null) it.append(" $percentage ($doneCount/$totalCount)") else it }
+
+        val updatePacket = ReadyUpdatePacket(
+            isRunning = true,
+            isReady = true,
+            state = state.state,
+            // remainingDuration only drives the progress bar, so this does not need to be accurate.
+            // When progress is unknown, keep remaining == total so the bar renders empty (0%).
+            remainingDuration = if (hasProgress) (totalCount - doneCount).seconds else 1.seconds,
+            totalDuration = if (hasProgress) totalCount.seconds else 1.seconds,
+            readyPlayers = 0,
+            totalPlayers = 0,
+            title = text.string(StringKey.LobbyLoadingTerrain),
+            // Use an empty (non-null) subtitle when progress is unknown, so the client does not
+            // fall back to rendering a misleading "time remaining" countdown.
+            subtitle = percentage?.let { text.literal("$it ($doneCount/$totalCount)") } ?: text.empty(),
+            canSendReady = false,
+        )
+
+        for (player in playerManager.getPlayers()) {
+            when {
+                packet.readyUpdateV3.send(player, updatePacket) -> {}
+                packet.readyUpdateV2.send(player, updatePacket) -> {}
+                // readyUpdateV1 is intentionally omitted, as it does not support GameState.PRELOADING or custom titles
+                else -> player.sendHotbarMessage(message)
             }
         }
     }

@@ -1,5 +1,6 @@
 package me.jfenn.bingo.integrations.voice
 
+import de.maxhenkel.voicechat.api.ForgeVoicechatPlugin
 import de.maxhenkel.voicechat.api.VoicechatPlugin
 import de.maxhenkel.voicechat.api.VoicechatServerApi
 import de.maxhenkel.voicechat.api.events.EventRegistration
@@ -10,11 +11,23 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-internal object SimpleVoiceEntrypoint : VoicechatPlugin {
+/**
+ * Simple Voice Chat plugin entrypoint.
+ *
+ * On NeoForge/Forge, Simple Voice Chat discovers plugins by scanning for classes
+ * annotated with [ForgeVoicechatPlugin] and instantiating them via their no-arg
+ * constructor (unlike Fabric, which uses the `voicechat` entrypoint in fabric.mod.json).
+ * It must therefore be a regular class with a public no-arg constructor; shared state
+ * lives in the [companion object] so [SimpleVoiceApi] can read it.
+ */
+@ForgeVoicechatPlugin
+internal class SimpleVoiceEntrypoint : VoicechatPlugin {
 
-    private val logger = LoggerFactory.getLogger("ExBingo")
-    var api: VoicechatServerApi? = null
-    val onPlayerConnectedGroups = ConcurrentHashMap<UUID, UUID>()
+    companion object {
+        private val logger = LoggerFactory.getLogger("ExBingo")
+        var api: VoicechatServerApi? = null
+        val onPlayerConnectedGroups = ConcurrentHashMap<UUID, UUID>()
+    }
 
     override fun getPluginId(): String {
         return "exbingo"

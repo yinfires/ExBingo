@@ -43,8 +43,8 @@ internal class VoiceGroupController(
         usingCombinedGroup?.let { return it }
 
         val isSingleplayerTeams = state.getRegisteredTeams().all { it.players.size <= 1 }
-        usingCombinedGroup = isSingleplayerTeams && config.useCombinedGroupForSingleplayerTeams
-        return isSingleplayerTeams
+        return (isSingleplayerTeams && config.useCombinedGroupForSingleplayerTeams)
+            .also { usingCombinedGroup = it }
     }
 
     private var combinedGroup: IGroupHandle? = null
