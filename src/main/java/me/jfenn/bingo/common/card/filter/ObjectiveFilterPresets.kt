@@ -21,6 +21,9 @@ class ObjectiveFilterPreset(
     val id: String,
     val name: ITextSerialized?,
     val value: ObjectiveFilterList,
+    // if set, this preset is only available when ALL listed mods are loaded.
+    // used to ship mod-specific bingo boards that appear only when the mod is present.
+    val requiredMods: List<String> = emptyList(),
 ) {
     fun name(text: TextProvider) = name?.copy() ?: formatName(text, id)
 

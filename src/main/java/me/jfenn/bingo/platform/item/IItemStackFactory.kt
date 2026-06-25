@@ -11,6 +11,14 @@ interface IItemStackFactory {
     val emptyStack: IItemStack
 
     fun listItems(server: MinecraftServer): List<String>
+
+    /**
+     * Lists the identifiers of all items whose placed block is unbreakable
+     * (destroy time < 0, e.g. bedrock, barrier, command blocks, structure blocks).
+     * These are typically not legitimately obtainable in survival.
+     */
+    fun listUnbreakableItems(server: MinecraftServer): List<String>
+
     fun isEnabledInWorld(item: String, server: MinecraftServer): Boolean
 
     fun createStack(item: String, count: Int = 1): IItemStack

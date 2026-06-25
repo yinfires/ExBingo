@@ -15,6 +15,7 @@
     "MinecraftServerSkipStartRegionMixin",
     "MinecraftServerUnsafeSkipCloseMixin",
     "PlayerAdvancementTrackerPreventSpectatorsMixin",
+    "PlayerAdvancementsRevealAllMixin",
     "PlayerEntityMixin",
     "PlayerManagerMixin",
     "PersistentEntitySectionManagerAccessor",

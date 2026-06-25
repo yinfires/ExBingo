@@ -83,6 +83,7 @@ class NeoForgePacketRegistryTest {
             get() = error("unused")
 
         override fun listItems(server: MinecraftServer): List<String> = error("unused")
+        override fun listUnbreakableItems(server: MinecraftServer): List<String> = error("unused")
         override fun isEnabledInWorld(item: String, server: MinecraftServer): Boolean = error("unused")
         override fun createStack(item: String, count: Int): IItemStack = error("unused")
         override fun createStack(item: ResourceLocation, count: Int): IItemStack = error("unused")

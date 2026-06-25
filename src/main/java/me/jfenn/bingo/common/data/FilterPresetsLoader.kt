@@ -5,11 +5,13 @@ import me.jfenn.bingo.common.card.filter.ObjectiveFilterPreset
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterPresets
 import me.jfenn.bingo.common.utils.decodeFromUtf8Stream
 import me.jfenn.bingo.platform.IJsonSerializers
+import me.jfenn.bingo.platform.IModEnvironment
 import net.minecraft.server.packs.resources.ResourceManager
 import org.slf4j.Logger
 
 class FilterPresetsLoader(
     private val serializers: IJsonSerializers,
+    private val environment: IModEnvironment,
     private val log: Logger,
 ) {
     fun loadFilterPresets(
@@ -34,7 +36,16 @@ class FilterPresetsLoader(
                     continue
                 }
 
-                newPresets += data.filters
+                // skip presets whose required mods aren't all loaded, so mod-specific
+                // boards only appear when their mod is present.
+                for (preset in data.filters) {
+                    val missing = preset.requiredMods.filterNot { environment.isModLoaded(it) }
+                    if (missing.isNotEmpty()) {
+                        log.debug("[FilterPresetsLoader] Skipping preset '${preset.id}' (missing mods: $missing)")
+                        continue
+                    }
+                    newPresets += preset
+                }
             }
 
         }

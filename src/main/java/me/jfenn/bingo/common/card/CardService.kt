@@ -3,6 +3,8 @@ package me.jfenn.bingo.common.card
 import me.jfenn.bingo.common.MDC_DEBUG
 import me.jfenn.bingo.common.MDC_FILENAME
 import me.jfenn.bingo.common.MDC_OBJECTIVE
+import me.jfenn.bingo.common.MOD_ID_BINGO
+import me.jfenn.bingo.common.MOD_ID_MINECRAFT
 import me.jfenn.bingo.common.card.data.ObjectiveRequirements
 import me.jfenn.bingo.common.card.filter.ObjectiveFilter
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
@@ -352,15 +354,38 @@ internal class CardService(
         tags: MutableMap<String, TagData>,
         filterList: ObjectiveFilterList,
     ): TierListConfig {
-        // Collect the selected tier list config
+        // Collect the selected tier list config.
+        //
+        // Priority (highest first):
+        //   1. manual edits      - guaranteed per-file by TrackedFileService
+        //   2. mod/datapack lists - their categorization must win over auto-tier
+        //   3. auto-tier list     - lowest; only fills gaps
+        //
+        // The auto-tier list is therefore combined LAST, and any entry it holds for an
+        // objective that some other list already categorizes is dropped. This keeps
+        // mod-provided categories authoritative even if a mod update categorizes an item
+        // that a previous auto-tier run had already assigned (without needing a re-run).
+        val autoTierName = configService.config.autoTier.tierListName
         val tierList = run {
-            // Otherwise, collect all available lists
-            var list = TierListConfig.EMPTY
-            getTierLists(filterList)
+            val selected = getTierLists(filterList)
                 .map { (name, otherList) ->
-                    otherList.expandTags(tagExpansionService).expandName(name)
+                    name to otherList.expandTags(tagExpansionService).expandName(name)
                 }
-                .forEach { list = list.combine(it) }
+
+            // combine non-auto-tier (higher priority) lists first
+            var list = TierListConfig.EMPTY
+            selected
+                .filter { (name, _) -> name != autoTierName }
+                .forEach { (_, otherList) -> list = list.combine(otherList) }
+
+            // then layer the auto-tier list underneath, minus anything already categorized
+            selected
+                .filter { (name, _) -> name == autoTierName }
+                .forEach { (_, autoList) ->
+                    val base = list
+                    val pruned = autoList.filter { entry -> !base.isCategorized(entry.item) }
+                    list = list.combine(pruned)
+                }
 
             list
         }
@@ -382,6 +407,22 @@ internal class CardService(
             (tags[ObjectiveFilter.UNOBTAINABLE]?.values ?: emptySet())
         )
 
+        // Objectives that should not appear on cards by default, but can still be opted
+        // into explicitly through an include/count filter (e.g. +unbreakable, +from=<mod>).
+        //  - uncategorized content from non-vanilla namespaces (config-gated)
+        //  - items whose placed block is unbreakable (config-gated)
+        // Vanilla (minecraft:/exbingo:) uncategorized content keeps the original behavior.
+        val defaultExcluded = buildSet {
+            if (configService.config.excludeModUncategorizedFromCards) {
+                uncategorizedObjectives
+                    .filterNot { isBaseNamespace(it.item) }
+                    .forEach { add(it.item) }
+            }
+            if (configService.config.excludeUnbreakableBlocksFromCards) {
+                tags[ObjectiveFilter.UNBREAKABLE]?.values?.let { addAll(it) }
+            }
+        }
+
         // If there is any included tag, only include explicitly referenced items
         val hasIncludeTag = filterList.any { it is ObjectiveFilter.Include }
 
@@ -395,6 +436,17 @@ internal class CardService(
             .mapNotNull { getFilterTag(tags, it) }
             .toMutableList()
 
+        // Default-excluded content (mod-uncategorized & unbreakable) may ONLY be brought
+        // back by a *targeted* opt-in — i.e. the filter explicitly names the `uncategorized`
+        // or `unbreakable` tag. Broad includes like `from=<mod>` or `type=advancement` must
+        // NOT pull in uncategorized content, so mod boards and the all-advancements board
+        // stay free of unbalanced uncategorized items/advancements.
+        val optInTags = setOf(ObjectiveFilter.UNCATEGORIZED, ObjectiveFilter.UNBREAKABLE)
+        val optInFilters = filterList
+            .filter { (it is ObjectiveFilter.Include || it is ObjectiveFilter.Count) && it.tag in optInTags }
+            .mapNotNull { getFilterTag(tags, it) }
+            .toMutableList()
+
         return tierList
             .copy(
                 // include any uncategorized objectives in the list
@@ -404,8 +456,17 @@ internal class CardService(
                 // apply the selected item filters to the list contents
                 val isIncluded = !hasIncludeTag || includeFilters.any { it.contains(entry.item) }
                 val isExcluded = excludeFilters.any { it.contains(entry.item) }
-                isIncluded && !isExcluded
+                // drop default-excluded objectives unless a targeted opt-in filter brought them in
+                val isOptedIn = optInFilters.any { it.contains(entry.item) }
+                val isDefaultExcluded = defaultExcluded.contains(entry.item) && !isOptedIn
+                isIncluded && !isExcluded && !isDefaultExcluded
             }
+    }
+
+    /** Base-game content (vanilla + ExBingo's own objectives) keeps the original card behavior. */
+    private fun isBaseNamespace(objectiveId: String): Boolean {
+        val namespace = objectiveId.substringAfter('!').substringBefore(':', missingDelimiterValue = MOD_ID_MINECRAFT)
+        return namespace == MOD_ID_MINECRAFT || namespace == MOD_ID_BINGO
     }
 
     data class GeneratedObjective(

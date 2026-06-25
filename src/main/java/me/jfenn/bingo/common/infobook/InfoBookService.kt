@@ -101,6 +101,23 @@ internal class InfoBookService(
                 }
             }
 
+    private fun getModCompatPage() =
+        textFactory.empty()
+            .append(text.string(StringKey.IntroAutotierTitle).formatted(ChatFormatting.BOLD))
+            .append("\n\n")
+            .append(text.string(StringKey.IntroAutotierIntro))
+            .append("\n\n")
+            .append(
+                text.string(
+                    StringKey.IntroAutotierCommand,
+                    text.string(StringKey.IntroAutotierCommandLink)
+                        .formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE)
+                        .also { it.setClickEvent(TextAction.SuggestCommand("/bingo autotier generate")) },
+                )
+            )
+            .append("\n\n")
+            .append(text.string(StringKey.IntroAutotierNote).formatted(ChatFormatting.GRAY))
+
     private fun toggleText(
         value: Boolean,
         name: StringKey,
@@ -108,7 +125,7 @@ internal class InfoBookService(
     ) =
         textFactory.empty()
             .append(
-                textFactory.literal(if (value) "☑" else "☐")
+                textFactory.literal(if (value) "\u2611" else "\u2610")
                     .formatted(
                         if (value) ChatFormatting.DARK_GREEN else ChatFormatting.DARK_RED,
                     )
@@ -227,6 +244,10 @@ internal class InfoBookService(
                     add(getSettingsPage(player, settings))
                 add(getHintsPage(player))
             }
+
+            // mod compatibility & auto-tiering (ops only — it can write server config)
+            if (permissions.hasPermission(player, Permission.COMMAND_AUTOTIER))
+                add(getModCompatPage())
         })
     }
 

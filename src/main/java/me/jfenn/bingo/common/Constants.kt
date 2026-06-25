@@ -10,6 +10,9 @@ const val MOD_ID = "exbingo"
 
 const val MOD_ID_BINGO = "exbingo"
 
+// the vanilla Minecraft namespace; used to distinguish base-game content from mod content
+const val MOD_ID_MINECRAFT = "minecraft"
+
 val LOBBY_WORLD_ID = ResourceLocation.fromNamespaceAndPath("bingo", "lobby")
 val LOBBY_WORLD_IDENTIFIER = LOBBY_WORLD_ID.toString()
 val MinecraftServer.lobbyWorld get() = allLevels.find { it.dimension().location() == LOBBY_WORLD_ID }

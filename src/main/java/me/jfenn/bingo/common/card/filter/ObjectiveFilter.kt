@@ -9,6 +9,8 @@ sealed class ObjectiveFilter {
     companion object {
         const val UNCATEGORIZED = "uncategorized"
         const val UNOBTAINABLE = "unobtainable"
+        // items whose placed block is unbreakable (bedrock, barrier, command blocks, ...)
+        const val UNBREAKABLE = "unbreakable"
         const val TEDIOUS = "tedious"
         const val EVERYTHING = "everything"
 

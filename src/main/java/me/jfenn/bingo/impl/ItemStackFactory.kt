@@ -9,8 +9,11 @@ import me.jfenn.bingo.platform.text.IText
 import me.jfenn.bingo.platform.item.*
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.component.DataComponents
+import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.Registries
+import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.component.*
+import net.minecraft.world.level.EmptyBlockGetter
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.enchantment.ItemEnchantments
 import net.minecraft.world.item.ItemStack
@@ -41,6 +44,20 @@ class ItemStackFactory(
         return BuiltInRegistries.ITEM.holders()
             .map { it.key().location().toString() }
             .filter { isEnabledInWorld(it, server) }
+            .toList()
+    }
+
+    override fun listUnbreakableItems(server: MinecraftServer): List<String> {
+        return BuiltInRegistries.ITEM.holders()
+            .filter { holder ->
+                val item = holder.value()
+                // only BlockItems place a block; check the placed block's destroy time
+                item is BlockItem && item.block.defaultBlockState().getDestroySpeed(
+                    EmptyBlockGetter.INSTANCE,
+                    BlockPos.ZERO,
+                ) < 0f
+            }
+            .map { it.key().location().toString() }
             .toList()
     }
 

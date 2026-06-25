@@ -36,6 +36,9 @@ internal object Permission {
     /** "/bingodata" commands */
     val COMMAND_DATA = PermissionKey("$MOD_ID.command.bingodata", PermissionDefault.OPERATORS)
 
+    /** "/bingo autotier" command - OP only, writes server-side config */
+    val COMMAND_AUTOTIER = PermissionKey("$MOD_ID.command.autotier", PermissionDefault.OPERATORS)
+
     /** "/bingo debug" command */
     val COMMAND_DEBUG = PermissionKey("$MOD_ID.command.debug", PermissionDefault.OPERATORS)
 

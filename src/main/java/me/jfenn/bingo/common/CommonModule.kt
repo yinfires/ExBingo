@@ -10,6 +10,8 @@ import me.jfenn.bingo.common.bossbar.BossBarService
 import me.jfenn.bingo.common.bossbar.ResetBossBarService
 import me.jfenn.bingo.common.card.CardService
 import me.jfenn.bingo.common.card.TagExpansionService
+import me.jfenn.bingo.common.card.autotier.AutoTierCommand
+import me.jfenn.bingo.common.card.autotier.AutoTierService
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterCommand
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterService
 import me.jfenn.bingo.common.card.objective.*
@@ -147,6 +149,7 @@ val commonModule = module {
     singleOf(::ReadyCommand)
     singleOf(::StatsCommand)
     singleOf(::ObjectiveFilterCommand)
+    singleOf(::AutoTierCommand)
     singleOf(::InfoBookCommand)
     singleOf(::DataCommands)
 
@@ -254,6 +257,7 @@ val commonModule = module {
         scopedOf(::ObjectiveTagProvider)
         scopedOf(::TierListTagProvider)
         scopedOf(::UnobtainableTagProvider)
+        scopedOf(::UnbreakableTagProvider)
         scoped {
             TagService(
                 listOf(
@@ -261,6 +265,7 @@ val commonModule = module {
                     get<ObjectiveTagProvider>(),
                     get<TierListTagProvider>(),
                     get<UnobtainableTagProvider>(),
+                    get<UnbreakableTagProvider>(),
                 )
             )
         }
@@ -268,6 +273,7 @@ val commonModule = module {
         scopedOf(::OptionsService)
         scopedOf(::ObjectiveFilterService)
         scopedOf(::CardService)
+        scopedOf(::AutoTierService)
 
         scopedOf(::LobbyModeService)
         scopedOf(::LobbyModeController)
@@ -369,6 +375,10 @@ fun Koin.commonInit() {
     get<BingoPluginHolder>()
     get<DataLoaderManager>()
 
+    // reveal the whole vanilla advancement tree from the start, if configured
+    me.jfenn.bingo.mixinhandler.RevealAllAdvancementsHelper.enabled =
+        get<BingoConfig>().revealAllAdvancements
+
     get<MapColors>()
     get<ServerDatapackManager>()
     get<IScopeManager>()
@@ -391,6 +401,7 @@ fun Koin.commonInit() {
     get<ReadyCommand>()
     get<StatsCommand>()
     get<ObjectiveFilterCommand>()
+    get<AutoTierCommand>()
     get<InfoBookCommand>()
     get<DataCommands>()
 

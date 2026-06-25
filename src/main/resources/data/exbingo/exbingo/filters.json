@@ -22,7 +22,7 @@
         "translate": "bingo.list.advancements",
         "fallback": "Advancements"
       },
-      "value": "+type=advancement -tedious -unobtainable"
+      "value": "+type=advancement -tedious -uncategorized -unobtainable"
     },
     {
       "id": "simplified",
@@ -31,6 +31,15 @@
         "fallback": "Simplified"
       },
       "value": "+simplified -tedious -unobtainable"
+    },
+    {
+      "id": "farmersdelight",
+      "name": {
+        "translate": "bingo.list.farmersdelight",
+        "fallback": "Farmer's Delight"
+      },
+      "value": "+from=farmersdelight -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["farmersdelight"]
     }
   ]
 }

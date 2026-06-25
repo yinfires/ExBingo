@@ -4,6 +4,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
+import me.jfenn.bingo.common.card.autotier.AutoTierConfig
 import me.jfenn.bingo.common.card.tierlist.TierLabel
 import me.jfenn.bingo.platform.utils.UuidAsString
 import java.util.*
@@ -21,6 +22,18 @@ data class BingoConfig(
     // excludes the active spawn kit items from item tiers when generating a card
     val excludeSpawnKitItemsFromCards: Boolean = true,
 
+    // when true, uncategorized objectives from non-vanilla (modded) namespaces are NOT
+    // added to cards by default. Vanilla (minecraft:) uncategorized content is unaffected
+    // and keeps the original behavior. Players can still opt in explicitly via the
+    // 'uncategorized' / 'from=<modid>' filters.
+    val excludeModUncategorizedFromCards: Boolean = true,
+    // when true, items whose placed block is unbreakable (bedrock, barrier, command
+    // blocks, structure blocks, ...) are never added to cards by default.
+    val excludeUnbreakableBlocksFromCards: Boolean = true,
+
+    // configuration for the /bingo autotier auto-classification feature
+    val autoTier: AutoTierConfig = AutoTierConfig(),
+
     // stops sounds from being sent to other players in the lobby
     val preventLobbyChaos: Boolean = false,
     // gives players a tutorial/settings book when they join the lobby
@@ -31,6 +44,11 @@ data class BingoConfig(
 
     val nightVisionInSpectator: Boolean = true,
     val nightVisionInPostgame: Boolean = true,
+
+    // when true, the entire vanilla advancement tree (the "L" screen) is shown
+    // from the start, instead of hiding advancements until their prerequisites
+    // are unlocked. This only affects visibility/display, not actual progress.
+    val revealAllAdvancements: Boolean = true,
 
     // whether the server should allow connecting clients to use the bingo HUD
     // instead of the vanilla map/card behavior
