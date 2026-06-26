@@ -190,7 +190,20 @@
         "twilightforest:fiery_set",
         "twilightforest:mazebreaker",
         "twilightforest:break_glass_sword",
-        "twilightforest:lich_scepters"
+        "twilightforest:lich_scepters",
+        "twilightforest:stripped_time_log",
+        "twilightforest:stripped_time_wood",
+        "twilightforest:stripped_sorting_log",
+        "twilightforest:stripped_sorting_wood",
+        "twilightforest:stripped_transformation_log",
+        "twilightforest:stripped_transformation_wood",
+        "twilightforest:stripped_mining_log",
+        "twilightforest:stripped_mining_wood",
+        "twilightforest:hydra_banner_pattern",
+        "twilightforest:knight_phantom_banner_pattern",
+        "twilightforest:snow_queen_banner_pattern",
+        "twilightforest:ur_ghast_banner_pattern",
+        "twilightforest:alpha_yeti_banner_pattern"
     ],
     "A": [
         "twilightforest:knightmetal_axe",
@@ -252,7 +265,11 @@
         "twilightforest:quest_ram",
         "twilightforest:craft_travellers_gear",
         "twilightforest:ghast_trap",
-        "twilightforest:troll"
+        "twilightforest:troll",
+        "twilightforest:naga_banner_pattern",
+        "twilightforest:lich_banner_pattern",
+        "twilightforest:minoshroom_banner_pattern",
+        "twilightforest:quest_ram_banner_pattern"
     ],
     "B": [
         "twilightforest:dark_banister",
@@ -333,16 +350,27 @@
         "twilightforest:arctic_armor_dyed",
         "twilightforest:modify_travellers_gear",
         "twilightforest:kill_cicada",
-        "twilightforest:uncraft_uncrafting_table"
+        "twilightforest:uncraft_uncrafting_table",
+        "twilightforest:blackberry",
+        "twilightforest:blueberry",
+        "twilightforest:raspberry",
+        "twilightforest:maloberry",
+        "twilightforest:duskberry",
+        "twilightforest:skyberry",
+        "twilightforest:blightberry",
+        "twilightforest:stingberry",
+        "twilightforest:copper_berry",
+        "twilightforest:gold_berry",
+        "twilightforest:iron_berry",
+        "twilightforest:essence_berry",
+        "twilightforest:berry_medley"
     ],
     "C": [
         "twilightforest:acacia_banister",
         "twilightforest:acacia_drying_rack",
-        "twilightforest:alpha_yeti_banner_pattern",
         "twilightforest:bamboo_banister",
         "twilightforest:bamboo_drying_rack",
         "twilightforest:beef_jerky",
-        "twilightforest:berry_medley",
         "twilightforest:birch_banister",
         "twilightforest:birch_drying_rack",
         "twilightforest:blackberry_bush",
@@ -393,7 +421,6 @@
         "twilightforest:gelatinous_maze_slime_drop",
         "twilightforest:gelatinous_slime_drop",
         "twilightforest:hedge",
-        "twilightforest:hydra_banner_pattern",
         "twilightforest:ice_bomb",
         "twilightforest:iron_ladder",
         "twilightforest:ironwood_axe",
@@ -407,8 +434,6 @@
         "twilightforest:ironwood_sword",
         "twilightforest:jungle_banister",
         "twilightforest:jungle_drying_rack",
-        "twilightforest:knight_phantom_banner_pattern",
-        "twilightforest:lich_banner_pattern",
         "twilightforest:locked_vanishing_block",
         "twilightforest:magic_map",
         "twilightforest:maloberry_bush",
@@ -433,7 +458,6 @@
         "twilightforest:maze_map",
         "twilightforest:maze_slime_ball",
         "twilightforest:maze_slime_block",
-        "twilightforest:minoshroom_banner_pattern",
         "twilightforest:monster_jerky",
         "twilightforest:moss_patch",
         "twilightforest:moss_soup",
@@ -449,7 +473,6 @@
         "twilightforest:music_disc_wayfarer",
         "twilightforest:mutton_jerky",
         "twilightforest:mystic_crown",
-        "twilightforest:naga_banner_pattern",
         "twilightforest:naga_chestplate",
         "twilightforest:naga_leggings",
         "twilightforest:oak_banister",
@@ -465,7 +488,6 @@
         "twilightforest:salmon_jerky",
         "twilightforest:skyberry_bush",
         "twilightforest:smoker",
-        "twilightforest:snow_queen_banner_pattern",
         "twilightforest:snowy_cloud",
         "twilightforest:spiral_bricks",
         "twilightforest:spruce_banister",
@@ -511,7 +533,6 @@
         "twilightforest:underbrick",
         "twilightforest:underbrick_floor",
         "twilightforest:unripe_trollber",
-        "twilightforest:ur_ghast_banner_pattern",
         "twilightforest:vangrove_banister",
         "twilightforest:vangrove_drying_rack",
         "twilightforest:warped_banister",
@@ -525,18 +546,6 @@
         "twilightforest:hill3"
     ],
     "D": [
-        "twilightforest:blackberry",
-        "twilightforest:blightberry",
-        "twilightforest:blueberry",
-        "twilightforest:copper_berry",
-        "twilightforest:duskberry",
-        "twilightforest:essence_berry",
-        "twilightforest:gold_berry",
-        "twilightforest:iron_berry",
-        "twilightforest:maloberry",
-        "twilightforest:raspberry",
-        "twilightforest:skyberry",
-        "twilightforest:stingberry",
         "twilightforest:canopy_sapling",
         "twilightforest:darkwood_sapling",
         "twilightforest:hollow_oak_sapling",
@@ -570,14 +579,6 @@
         "twilightforest:stripped_dark_wood",
         "twilightforest:stripped_mangrove_log",
         "twilightforest:stripped_mangrove_wood",
-        "twilightforest:stripped_mining_log",
-        "twilightforest:stripped_mining_wood",
-        "twilightforest:stripped_sorting_log",
-        "twilightforest:stripped_sorting_wood",
-        "twilightforest:stripped_time_log",
-        "twilightforest:stripped_time_wood",
-        "twilightforest:stripped_transformation_log",
-        "twilightforest:stripped_transformation_wood",
         "twilightforest:stripped_twilight_oak_log",
         "twilightforest:stripped_twilight_oak_wood",
         "twilightforest:thorn_leaves",
@@ -608,7 +609,9 @@
             "twilightforest:mining_stairs",
             "twilightforest:mining_trapdoor",
             "twilightforest:mining_trapped_chest",
-            "twilightforest:mining_wood"
+            "twilightforest:mining_wood",
+            "twilightforest:stripped_mining_log",
+            "twilightforest:stripped_mining_wood"
         ],
         [
             "twilightforest:sorting_banister",
@@ -631,7 +634,9 @@
             "twilightforest:sorting_stairs",
             "twilightforest:sorting_trapdoor",
             "twilightforest:sorting_trapped_chest",
-            "twilightforest:sorting_wood"
+            "twilightforest:sorting_wood",
+            "twilightforest:stripped_sorting_log",
+            "twilightforest:stripped_sorting_wood"
         ],
         [
             "twilightforest:time_banister",
@@ -654,7 +659,9 @@
             "twilightforest:time_stairs",
             "twilightforest:time_trapdoor",
             "twilightforest:time_trapped_chest",
-            "twilightforest:time_wood"
+            "twilightforest:time_wood",
+            "twilightforest:stripped_time_log",
+            "twilightforest:stripped_time_wood"
         ],
         [
             "twilightforest:transformation_banister",
@@ -677,7 +684,9 @@
             "twilightforest:transformation_stairs",
             "twilightforest:transformation_trapdoor",
             "twilightforest:transformation_trapped_chest",
-            "twilightforest:transformation_wood"
+            "twilightforest:transformation_wood",
+            "twilightforest:stripped_transformation_log",
+            "twilightforest:stripped_transformation_wood"
         ],
         [
             "twilightforest:bold_castle_brick_pillar",
@@ -903,6 +912,34 @@
             "twilightforest:twilight_oak_log",
             "twilightforest:twilight_oak_planks",
             "twilightforest:twilight_oak_wood"
+        ],
+        [
+            "twilightforest:blackberry",
+            "twilightforest:blueberry",
+            "twilightforest:raspberry",
+            "twilightforest:maloberry",
+            "twilightforest:duskberry",
+            "twilightforest:skyberry",
+            "twilightforest:blightberry",
+            "twilightforest:stingberry",
+            "twilightforest:copper_berry",
+            "twilightforest:gold_berry",
+            "twilightforest:iron_berry",
+            "twilightforest:essence_berry",
+            "twilightforest:berry_medley"
+        ],
+        [
+            "twilightforest:naga_banner_pattern",
+            "twilightforest:lich_banner_pattern",
+            "twilightforest:minoshroom_banner_pattern",
+            "twilightforest:quest_ram_banner_pattern"
+        ],
+        [
+            "twilightforest:hydra_banner_pattern",
+            "twilightforest:knight_phantom_banner_pattern",
+            "twilightforest:snow_queen_banner_pattern",
+            "twilightforest:ur_ghast_banner_pattern",
+            "twilightforest:alpha_yeti_banner_pattern"
         ]
     ]
 }
