@@ -590,6 +590,16 @@ class ServerWorldImpl(
         return ChunkImpl(world.getChunk(chunk.first, chunk.second))
     }
 
+    override fun areChunkEntitiesReady(chunk: Pair<Int, Int>): Boolean {
+        val chunkLong = ChunkPos.asLong(chunk.first, chunk.second)
+        val diagnostics = collectEntityChunkLifecycleDiagnostics(world, chunkLong)
+        // The chunk's persisted entities are only visible to allEntities once they've drained out
+        // of the loading inbox AND the chunk's entity section is LOADED/TICKING. Require both, plus
+        // a globally-empty inbox so neighbouring menu chunks aren't still mid-load.
+        return diagnostics.loadingInboxSize == 0 &&
+                isEntityChunkLifecycleHealthy(diagnostics.loadStatus, diagnostics.visibility)
+    }
+
     override fun getChunkAsync(chunk: Pair<Int, Int>): CompletableFuture<IChunk?> {
         if (!world.server.isSameThread) {
             return CompletableFuture.supplyAsync({ getChunkAsync(chunk) }, world.server)

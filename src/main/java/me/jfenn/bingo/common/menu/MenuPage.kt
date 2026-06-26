@@ -212,8 +212,21 @@ internal fun MenuComponent.registerMenuPage(
         }
     }
 
+    // The page that currently has entities spawned. Navigation (e.g. opening the difficulty
+    // customization sub-page) just reassigns `menuState.page`, which does NOT mark this component
+    // dirty, so `onUpdate` may not run for several ticks (or be skipped entirely if the lobby was
+    // rebuilt while a navigation event was queued). Tearing the previous page down here, every
+    // tick the page changes, decouples "despawn old page" from the dirty flag so stale pages can
+    // never linger and overlap the newly shown one.
+    var shownPage: MenuPage? = null
+
     onTick { instance ->
-        pages[menuState.page]?.tick(instance)
+        val page = menuState.page
+        if (shownPage != null && shownPage != page) {
+            pages[shownPage]?.despawn()
+        }
+        shownPage = page
+        pages[page]?.tick(instance)
     }
 
     onUpdate { instance ->
@@ -227,5 +240,6 @@ internal fun MenuComponent.registerMenuPage(
 
     onDespawn {
         pages.values.forEach { it.despawn() }
+        shownPage = null
     }
 }

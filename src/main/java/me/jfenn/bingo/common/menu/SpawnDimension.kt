@@ -29,7 +29,11 @@ internal fun MenuComponent.registerDimensionMenu(
         setter = { dimension = dimensions[it] },
     )
 
-    val dimensionLabels = dimensions.map { text.literal(it.substringAfterLast(':').formatTitle()) }
+    val dimensionLabels = dimensions.map { identifier ->
+        val key = "bingo.dimension." + identifier.replace(':', '.').replace('/', '.')
+        val fallback = identifier.substringAfterLast(':').formatTitle()
+        text.translatable(key, fallback)
+    }
 
     registerRadioMenu(
         position = position,

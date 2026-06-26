@@ -40,6 +40,24 @@
       },
       "value": "+from=farmersdelight -uncategorized -unobtainable -unbreakable",
       "requiredMods": ["farmersdelight"]
+    },
+    {
+      "id": "twilightforest",
+      "name": {
+        "translate": "bingo.list.twilightforest",
+        "fallback": "Twilight Forest"
+      },
+      "value": "+from=twilightforest -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["twilightforest"]
+    },
+    {
+      "id": "cataclysm",
+      "name": {
+        "translate": "bingo.list.cataclysm",
+        "fallback": "Cataclysm"
+      },
+      "value": "+from=cataclysm -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["cataclysm"]
     }
   ]
 }

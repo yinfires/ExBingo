@@ -81,6 +81,11 @@ internal class MenuController(
     private val koinScope = scopeManager.getScope(server)!!
     private val teamPickerChunks = mutableSetOf<ChunkPos>()
 
+    // Guards against overlapping deferred spawn attempts: spawnLobby may reschedule itself for a
+    // later tick while waiting for persisted lobby entities to finish loading, and must not run
+    // that wait twice concurrently (e.g. reset + PREGAME enter both calling in).
+    private var lobbySpawnPending = false
+
     // Unique tag for entities belonging to the current lobby instance. Regenerated each time
     // the lobby is spawned so stale runtime menu/team entities can be discarded safely.
     private var instanceTag = "bingo-${UUID.randomUUID()}"
@@ -89,6 +94,10 @@ internal class MenuController(
         val TEAM_PICKER_TICKET: TicketType<ChunkPos> = TicketType.create("bingo-team-picker") { a, b ->
             a.toLong().compareTo(b.toLong())
         }
+
+        // Cap on how many ticks we wait for persisted lobby entities to drain out of the async
+        // loading inbox before spawning anyway. ~5s at 20 tps; well beyond normal load latency.
+        const val MAX_ENTITY_READY_WAIT_TICKS = 100
     }
 
     private object Cache {
@@ -191,6 +200,74 @@ internal class MenuController(
             return
         }
 
+        // Persisted lobby entities (from the bundled world's entities/ data, or a previous game in
+        // a retained world) load out of an async inbox a tick or more after their chunk is loaded.
+        // If we cleanup+spawn in the same tick we load the chunks, allEntities can't see those
+        // pending entities yet, so they survive cleanup and overlap the freshly spawned menu (and
+        // their stale INTERACTION entities swallow clicks). Wait until the lobby chunks' entities
+        // are live before reconciling. Re-entrancy guarded by lobbySpawnPending.
+        if (lobbySpawnPending) {
+            log.debug("[MenuController] spawnLobby already pending; ignoring re-entrant call")
+            return
+        }
+        lobbySpawnPending = true
+        awaitLobbyEntitiesThenSpawn(lobbyWorld, waitedTicks = 0)
+    }
+
+    private fun awaitLobbyEntitiesThenSpawn(lobbyWorld: ServerLevel, waitedTicks: Int) {
+        // A game could have started again, or the world could have gone away, while we were waiting.
+        if (state.state != GameState.PREGAME || server.lobbyWorld !== lobbyWorld || menu != null) {
+            lobbySpawnPending = false
+            return
+        }
+
+        val chunks = lobbyEntityChunks(lobbyWorld)
+        val lobbyWorldImpl = serverWorldFactory.forWorld(lobbyWorld)
+        // Force-load every lobby chunk so its entity sections begin loading.
+        for (chunk in chunks) {
+            lobbyWorld.getChunk(chunk.first, chunk.second, ChunkStatus.FULL)
+        }
+
+        val ready = chunks.all { lobbyWorldImpl.areChunkEntitiesReady(it) }
+        if (!ready && waitedTicks < MAX_ENTITY_READY_WAIT_TICKS) {
+            taskExecutor.executeNextTick {
+                awaitLobbyEntitiesThenSpawn(lobbyWorld, waitedTicks + 1)
+            }
+            return
+        }
+
+        if (!ready) {
+            log.error(
+                "[MenuController] Lobby entities still not loaded after {} ticks; spawning anyway (overlap risk)",
+                waitedTicks,
+            )
+        } else if (waitedTicks > 0) {
+            log.info("[MenuController] Lobby entities ready after {} tick(s)", waitedTicks)
+        }
+
+        try {
+            performSpawnLobby(lobbyWorld)
+        } finally {
+            lobbySpawnPending = false
+        }
+    }
+
+    /**
+     * Chunk coordinates that hold lobby runtime entities: the menu sign column and every team
+     * picker position. These are the chunks whose persisted entities must be live before cleanup.
+     */
+    private fun lobbyEntityChunks(lobbyWorld: ServerLevel): Set<Pair<Int, Int>> {
+        val chunks = mutableSetOf<Pair<Int, Int>>()
+        getMenuPosition(lobbyWorld)?.getTranslation(Vector3d())?.let { pos ->
+            chunks += Math.floorDiv(pos.x.toInt(), 16) to Math.floorDiv(pos.z.toInt(), 16)
+        }
+        for (blockPos in getTeamPositions(lobbyWorld).values) {
+            chunks += Math.floorDiv(blockPos.x, 16) to Math.floorDiv(blockPos.z, 16)
+        }
+        return chunks
+    }
+
+    private fun performSpawnLobby(lobbyWorld: ServerLevel) {
         val menuPos = refreshLobbyState(lobbyWorld)
         val beforeCleanupStats = menuEntityStats(lobbyWorld)
         cleanupLobby(lobbyWorld)

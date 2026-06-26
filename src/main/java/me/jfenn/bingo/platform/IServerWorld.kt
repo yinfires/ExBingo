@@ -42,6 +42,18 @@ interface IServerWorld {
     fun getChunkSync(chunk: Pair<Int, Int>): IChunk
     fun getChunkAsync(chunk: Pair<Int, Int>): CompletableFuture<IChunk?>
 
+    /**
+     * True once the entities persisted in [chunk] have been promoted out of the async loading
+     * inbox and into the live entity list (i.e. [ServerLevel.allEntities] can actually see them).
+     *
+     * Loading a chunk via [getChunkSync] returns as soon as the *blocks* are ready, but entities
+     * are deserialized asynchronously a tick or more later. Cleanup logic that scans `allEntities`
+     * right after loading a chunk therefore misses still-pending entities, which then surface a
+     * tick later and overlap freshly spawned ones. Callers that must reconcile against persisted
+     * entities should wait for this to return true first.
+     */
+    fun areChunkEntitiesReady(chunk: Pair<Int, Int>): Boolean
+
     fun close()
 
     interface IChunkTicketHandle : Closeable

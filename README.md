@@ -12,7 +12,9 @@ ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-b
 
 - JEI物品管理器：从宾果卡目标打开物品配方界面。
 - 简单的语音聊天（Simple Voice Chat）：按队伍管理语音分组。
-- 农夫乐事（Farmer's Delight）：提供专属棋盘与详细难度分级（覆盖全部物品与进度）。
+- 农夫乐事（Farmer's Delight）：提供专属棋盘与详细难度分级。
+- 暮色森林（Twilight Forest）：提供专属棋盘与详细难度分级。
+- 灾变（L_Ender's Cataclysm）：提供专属棋盘与详细难度分级。
 
 **棋盘内容兼容**
 
@@ -55,7 +57,9 @@ This mod keeps the upstream mod's main gameplay, resources, and data layout, and
 
 - JEI: opens item recipe views from bingo card targets.
 - Simple Voice Chat: manages voice groups by team.
-- Farmer's Delight: provides a dedicated board and detailed difficulty tiers (covering all items and advancements).
+- Farmer's Delight: provides a dedicated board and detailed difficulty tiers.
+- Twilight Forest: provides a dedicated board and detailed difficulty tiers.
+- L_Ender's Cataclysm: provides a dedicated board and detailed difficulty tiers.
 
 **Card content compatibility**
 
