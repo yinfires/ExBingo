@@ -8,7 +8,6 @@ import me.jfenn.bingo.platform.text.ITextFactory
 import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.scope.BingoComponent
 import me.jfenn.bingo.common.state.BingoState
-import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.platform.event.IEventBus
 import me.jfenn.bingo.platform.event.game.ScopeStopped
 import net.minecraft.server.MinecraftServer
@@ -26,8 +25,12 @@ internal class BingoWorldManager(
             val state = it.scope.get<BingoState>()
             val server = it.scope.get<MinecraftServer>()
 
-            if (state.state != GameState.PLAYING && worldService.isBingoWorld(server) && state.isLobbyMode) {
-                // If the game is not in progress, delete it!
+            // Always clean up a managed BINGO world on exit, even mid-game. Upstream
+            // kept PLAYING worlds around so a game could be resumed, but for these
+            // ephemeral singleplayer worlds that just leaves stale entries in the
+            // world list (the bug reported here). isLobbyMode means this world was
+            // created by us, so it is safe to delete.
+            if (worldService.isBingoWorld(server) && state.isLobbyMode) {
                 worldService.deleteSave(server)
             }
         }

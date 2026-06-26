@@ -32,9 +32,43 @@ class WorldServiceImpl(
         log.info("Deleting closed BINGO world save")
 
         val dirName = server.getWorldPath(LevelResource.ROOT).parent.name
-        client.levelSource.createAccess(dirName).use {
-            it.deleteLevel()
+
+        // The integrated server has just released its session.lock, but on some
+        // platforms (notably Windows) the underlying file handle may not be fully
+        // released yet, so re-acquiring the directory lock via createAccess() can
+        // throw for a short window. Vanilla's deleteLevel() retries file deletion
+        // but NOT the initial lock acquisition, so without this retry the world is
+        // intermittently left behind. Retry a few times with a short backoff.
+        var lastError: Exception? = null
+        for (attempt in 1..MAX_DELETE_ATTEMPTS) {
+            try {
+                client.levelSource.createAccess(dirName).use {
+                    it.deleteLevel()
+                }
+                log.info("Deleted BINGO world save '{}' on attempt {}", dirName, attempt)
+                return
+            } catch (e: Exception) {
+                lastError = e
+                log.warn(
+                    "Failed to delete BINGO world save '{}' (attempt {}/{}): {}",
+                    dirName, attempt, MAX_DELETE_ATTEMPTS, e.message,
+                )
+                if (attempt < MAX_DELETE_ATTEMPTS) {
+                    try {
+                        Thread.sleep(DELETE_RETRY_DELAY_MS)
+                    } catch (interrupted: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        break
+                    }
+                }
+            }
         }
+
+        log.error("Could not delete BINGO world save '$dirName' after $MAX_DELETE_ATTEMPTS attempts; it may remain in the world list", lastError)
     }
 
+    private companion object {
+        const val MAX_DELETE_ATTEMPTS = 10
+        const val DELETE_RETRY_DELAY_MS = 200L
+    }
 }
