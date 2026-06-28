@@ -91,6 +91,15 @@ class BingoWorldController(
                     lobbyWorldService.copyDataPack(it.resolve(DATAPACK_FILE))
                 }
 
+                // For a plain (non-BINGO) world creation we're done after copying the pack.
+                // We must NOT apply the data pack config here: tryApplyNewDataPacks below sees
+                // no actual change to the selected packs, so it synchronously calls
+                // CreateWorldScreen.setScreen(this), which re-runs init() while the screen's
+                // `initialized` flag is still false (we are inside ScreenEvent.Init.Post). That
+                // re-adds every widget on top of the existing ones - producing the duplicated
+                // tab navigation bar / overlapping screen.
+                if (state != ScreenState.CreateBingoWorld) return@addListener
+
                 val pair = screen.accessor.invokeGetDataPackSelectionSettings(screen.uiState.settings.dataConfiguration())
                     ?: return@addListener
 
@@ -99,27 +108,25 @@ class BingoWorldController(
                 screen.accessor.invokeTryApplyNewDataPacks(pair.second, false) {}
                 worldState.isApplyingLobbyDataPack = false
 
-                if (state == ScreenState.CreateBingoWorld) {
-                    if (DATAPACK_ID !in pair.second.availableIds) {
-                        log.error("Bingo datapack installation has failed! This will probably cause a crash.")
-                    }
-
-                    // actually enable the bingo lobby datapack
-                    pair.second.setSelected((pair.second.selectedIds + DATAPACK_ID).reversed())
-
-                    val enabled = ImmutableList.copyOf(pair.second.selectedIds)
-                    val disabled = pair.second.availableIds.filter { !enabled.contains(it) }
-                    val dataConfiguration = WorldDataConfiguration(
-                        DataPackConfig(enabled, disabled),
-                        screen.uiState.settings.dataConfiguration().enabledFeatures()
-                    )
-
-                    worldState.state = ScreenState.OpenBingoWorld
-                    log.info("[BingoWorldController] datapack enabled, applying new pack config (-> OpenBingoWorld)")
-                    screen.accessor.invokeApplyNewPackConfig(pair.second, dataConfiguration) {}
-
-                    return@addListener
+                if (DATAPACK_ID !in pair.second.availableIds) {
+                    log.error("Bingo datapack installation has failed! This will probably cause a crash.")
                 }
+
+                // actually enable the bingo lobby datapack
+                pair.second.setSelected((pair.second.selectedIds + DATAPACK_ID).reversed())
+
+                val enabled = ImmutableList.copyOf(pair.second.selectedIds)
+                val disabled = pair.second.availableIds.filter { !enabled.contains(it) }
+                val dataConfiguration = WorldDataConfiguration(
+                    DataPackConfig(enabled, disabled),
+                    screen.uiState.settings.dataConfiguration().enabledFeatures()
+                )
+
+                worldState.state = ScreenState.OpenBingoWorld
+                log.info("[BingoWorldController] datapack enabled, applying new pack config (-> OpenBingoWorld)")
+                screen.accessor.invokeApplyNewPackConfig(pair.second, dataConfiguration) {}
+
+                return@addListener
             }
 
             if (screen is CreateWorldScreen && state == ScreenState.OpenBingoWorld) {
