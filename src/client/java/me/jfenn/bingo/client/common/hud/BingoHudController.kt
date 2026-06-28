@@ -3,6 +3,8 @@ package me.jfenn.bingo.client.common.hud
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.decodeFromStream
 import me.jfenn.bingo.client.common.event.ClientConfigChangedEvent
+import me.jfenn.bingo.client.common.event.ClientGameEndEvent
+import me.jfenn.bingo.client.common.event.ClientGameResetEvent
 import me.jfenn.bingo.client.common.event.HudStateChangedEvent
 import me.jfenn.bingo.client.common.hud.card.ClientCardBufferRenderer
 import me.jfenn.bingo.client.common.hud.card.ClientCardManager
@@ -301,6 +303,7 @@ internal class BingoHudController(
         if (hadGameOver) {
             client.closeExBingoScreen()
             eventBus.emit(HudStateChangedEvent, Unit)
+            eventBus.emit(ClientGameResetEvent, Unit)
         }
     }
 
@@ -320,6 +323,10 @@ internal class BingoHudController(
                 canEscape = false,
                 onClose = { onCardHudClosed(it.getCardPositions()) },
             )
+
+            // Reset per-round client state that needs the round's world to still be
+            // the current one (e.g. Xaero's map view) before the lobby teleport.
+            eventBus.emit(ClientGameEndEvent, Unit)
         }
     }
 

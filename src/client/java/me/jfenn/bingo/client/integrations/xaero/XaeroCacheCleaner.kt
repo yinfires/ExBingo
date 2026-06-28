@@ -1,5 +1,6 @@
 package me.jfenn.bingo.client.integrations.xaero
 
+import me.jfenn.bingo.client.common.event.ClientGameEndEvent
 import me.jfenn.bingo.client.platform.event.model.ClientServerEvent
 import me.jfenn.bingo.common.LOBBY_WORLD_ID
 import me.jfenn.bingo.common.scope.BingoComponent
@@ -31,6 +32,12 @@ import kotlin.streams.toList
  * so cleanup runs on disconnect (when the bingo world's files are released) and on
  * client start (to mop up anything a previous session left locked). Deletion is
  * best-effort — files still held open are skipped and retried next time.
+ *
+ * It also runs when a game ends ([ClientGameEndEvent]) to drop the disk cache of
+ * every round dimension *except the one the player is still in* (that one is locked
+ * and is reset in memory by [XaeroMapResetter] instead). This is what wipes the
+ * other dimensions a round visited (nether, end, …) so they reload empty next game,
+ * rather than only being cleaned up on a later disconnect/restart.
  *
  * This only touches this client's local Xaero cache; it is the part a
  * server-side-only integration cannot do.
@@ -64,6 +71,12 @@ internal class XaeroCacheCleaner(
         // Leaving the bingo world releases Xaero's file locks on the round's
         // dimension, so this is the reliable moment to delete it.
         eventBus.register(ClientServerEvent.Disconnect) { cleanLater() }
+
+        // A game just ended: the player is still connected, so the dimension they
+        // are in stays locked (reset in memory elsewhere), but every other round
+        // dimension they visited is now unlocked and can be dropped right away so
+        // the next round loads it empty instead of waiting for a disconnect.
+        eventBus.register(ClientGameEndEvent) { cleanRoundDimensionsLater() }
     }
 
     private fun cleanLater() {
@@ -72,6 +85,32 @@ internal class XaeroCacheCleaner(
                 cleanNow()
             } catch (e: Throwable) {
                 log.warn("[XaeroCacheCleaner] Failed to clean Xaero round caches", e)
+            }
+        }
+    }
+
+    private fun cleanRoundDimensionsLater() {
+        executors.io.submit {
+            try {
+                cleanRoundDimensionsNow()
+            } catch (e: Throwable) {
+                log.warn("[XaeroCacheCleaner] Failed to clean Xaero round dimensions", e)
+            }
+        }
+    }
+
+    /**
+     * Delete the round dimensions of every bingo world, keeping each lobby. Unlike
+     * [cleanNow] this never removes an ephemeral world wholesale (the player is still
+     * in it), only its non-lobby dimensions — the active one is skipped by the
+     * best-effort lock check.
+     */
+    private fun cleanRoundDimensionsNow() {
+        for (root in cacheRoots) {
+            if (!root.isDirectory()) continue
+            for (worldDir in root.listChildren()) {
+                if (!worldDir.isDirectory() || !isBingoWorld(worldDir)) continue
+                clearRoundDimensionsOf(worldDir)
             }
         }
     }
@@ -91,18 +130,21 @@ internal class XaeroCacheCleaner(
 
                     // Persistent bingo worlds (e.g. a LAN/dedicated server that keeps
                     // its lobby): only clear the round dimensions, keep the lobby.
-                    isBingoWorld(worldDir) -> {
-                        for (dimDir in worldDir.listChildren()) {
-                            if (!dimDir.isDirectory()) continue
-                            if (dimDir.name == lobbyDirName) continue
-                            deleteRecursivelyBestEffort(dimDir)
-                        }
-                    }
+                    isBingoWorld(worldDir) -> clearRoundDimensionsOf(worldDir)
 
                     // Not a bingo world; never touch unrelated servers' maps.
                     else -> continue
                 }
             }
+        }
+    }
+
+    /** Delete every dimension folder of a bingo world except its lobby. */
+    private fun clearRoundDimensionsOf(worldDir: Path) {
+        for (dimDir in worldDir.listChildren()) {
+            if (!dimDir.isDirectory()) continue
+            if (dimDir.name == lobbyDirName) continue
+            deleteRecursivelyBestEffort(dimDir)
         }
     }
 
