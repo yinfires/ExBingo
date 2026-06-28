@@ -5,7 +5,6 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "ChunkMapAccessor",
-    "ChunkMapForceTrackingMixin",
     "EndPortalBlockMixin",
     "GameRuleOverrideMixin",
     "HungerManagerAccessor",
@@ -27,8 +26,7 @@
     "ServerEntityManagerMixin",
     "ServerLevelEntityManagerAccessor",
     "ServerPlayNetworkHandlerMixin",
-    "ThreadExecutorAccessor",
-    "TrackedEntityAccessor"
+    "ThreadExecutorAccessor"
   ],
   "client": [],
   "injectors": {

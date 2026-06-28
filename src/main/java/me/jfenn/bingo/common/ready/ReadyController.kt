@@ -147,8 +147,18 @@ internal class ReadyController(
             // Run an update check immediately
             update()
 
-            // If the timer is not running, send an extra packet to dismiss the ready GUI
-            if (!readyState.isRunning) {
+            // If the timer is not running, send an extra packet to dismiss the ready GUI.
+            // Skip this during the loading phases (STARTING/PRELOADING/LOADING): there
+            // SpawnPreloadingController owns the same ReadyUpdatePacket to drive the
+            // terrain-loading progress bar, and a dismiss here blanks it out on every
+            // state transition — which is exactly the bar flashing 0% then vanishing
+            // until the load screen. Those states are left to SpawnPreloadingController;
+            // COUNTDOWN/PLAYING/PREGAME/POSTGAME still dismiss to clear the bar (e.g. so
+            // the finished loading bar is closed when the game actually begins).
+            val isLoadingPhase = state.state in arrayOf(
+                GameState.STARTING, GameState.PRELOADING, GameState.LOADING,
+            )
+            if (!readyState.isRunning && !isLoadingPhase) {
                 val packet = ReadyUpdatePacket(
                     isRunning = false,
                     isReady = false,

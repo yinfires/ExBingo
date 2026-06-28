@@ -204,43 +204,6 @@ internal class PlayerController(
         player.sendAbilitiesUpdate()
         updateVanishStatus(player)
         player.resyncClientState(syncPosition = true)
-        val playerWorld = player.serverWorld
-        val lobbyWorld = serverWorldFactory.listWorlds()
-            .find { it.identifier == LOBBY_WORLD_IDENTIFIER }
-            ?.world
-        val attached = playerWorld === lobbyWorld
-        val message = "[ResetDiag] [PlayerController] restoreLobbyPlayerAfterReset({}): state={}, gameId={}, dimension={}, playerLevel={}, lobbyLevel={}, attached={}, gameMode={}, spectator={}, alive={}, allowFlying={}, team={}, blockPos={}"
-        if (attached) log.info(
-            message,
-            player.playerName,
-            state.state,
-            state.gameId,
-            playerWorld.dimension().location(),
-            System.identityHashCode(playerWorld),
-            lobbyWorld?.let { System.identityHashCode(it).toString() } ?: "null",
-            attached,
-            player.gameMode,
-            player.isSpectator,
-            player.isAlive,
-            player.abilities.allowFlying,
-            teamService.getPlayerTeam(player)?.key?.id,
-            player.blockPos,
-        ) else log.error(
-            message,
-            player.playerName,
-            state.state,
-            state.gameId,
-            playerWorld.dimension().location(),
-            System.identityHashCode(playerWorld),
-            lobbyWorld?.let { System.identityHashCode(it).toString() } ?: "null",
-            attached,
-            player.gameMode,
-            player.isSpectator,
-            player.isAlive,
-            player.abilities.allowFlying,
-            teamService.getPlayerTeam(player)?.key?.id,
-            player.blockPos,
-        )
     }
 
     private fun resetPlayerHealth(player: IPlayerHandle) {
@@ -253,6 +216,17 @@ internal class PlayerController(
                 log.debug("[PlayerController] Removing effect {} from {}", it.type, player)
                 player.removeEffect(it)
             }
+
+        // removeEffect only settles the invisible flag on the next tick, but the reset
+        // path teleports across dimensions on this same tick — which builds the player's
+        // new ServerEntity and caches its spawn data (getNonDefaultValues) right then. If
+        // the flag is still true at that moment, the re-sent spawn carries a stale
+        // invisible=true and players stay invisible to each other until they move. Set it
+        // explicitly now (outside the countdown, where invisibility is intentional) so the
+        // cached spawn data is correct.
+        if (state.state != GameState.COUNTDOWN) {
+            player.entity.isInvisible = false
+        }
 
         player.fireTicks = 0
         player.isOnFire = false

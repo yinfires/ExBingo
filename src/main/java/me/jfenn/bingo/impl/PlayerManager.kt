@@ -496,38 +496,6 @@ class PlayerHandle(
         }
     }
 
-    override fun refreshEntityTracking() {
-        // Restore mutual visibility between all players after a bulk teleport
-        // (post-game reset). Two distinct conditions must BOTH hold for vanilla
-        // pairing to succeed, and earlier single-sided fixes each missed one:
-        //
-        //  1. Each player's TrackedEntity must be registered in ChunkMap.entityMap.
-        //     That only happens via startTracking() once the destination section
-        //     is accessible, which NeoForge promotes asynchronously a few ticks
-        //     after the teleport. Callers MUST wait until areChunkEntitiesReady()
-        //     before invoking this (see ResetService), or the iteration below
-        //     finds no entities and pairs nothing.
-        //  2. ChunkMap.TrackedEntity.updatePlayer() gates pairing on
-        //     isChunkTracked(), which is false while the target chunk is still
-        //     pending in the client's chunk sender — true for EVERY player right
-        //     after a simultaneous reset teleport. So the vanilla move() path
-        //     silently pairs nothing until each client ACKs its chunks (which is
-        //     what "players appear only after they move around" really was).
-        //
-        // move() handles chunk-level housekeeping; the force-pair (our mixin)
-        // then establishes the entity pairings directly, bypassing the
-        // isChunkTracked gate. Once paired, nothing re-evaluates a stationary
-        // player, so the pairing sticks.
-        val level = player.serverLevel()
-        val chunkMap = level.chunkSource.chunkMap
-        chunkMap.move(player)
-        (chunkMap as ChunkMapForceTracking).exbingo_forceAllPlayerPairings(level.players())
-    }
-
-    override fun isEntityTrackingReady(): Boolean {
-        val chunkMap = player.serverLevel().chunkSource.chunkMap as ChunkMapForceTracking
-        return chunkMap.exbingo_isPlayerTrackingReady(player)
-    }
 }
 
 private fun PlayerSoundEvent.toSoundEvent() = when (this) {

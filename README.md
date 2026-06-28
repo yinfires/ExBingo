@@ -12,7 +12,7 @@ ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-b
 
 - JEI物品管理器：从宾果卡目标打开物品配方界面。
 - 简单的语音聊天（Simple Voice Chat）：按队伍管理语音分组。
-- Xaero 的小地图 / 世界地图：对局结束返回大厅时，自动清理本局已探索的地图缓存与路径点，避免多局累积。
+- Xaero 的小地图 / 世界地图：对局结束返回大厅时，自动清理本局已探索的地图缓存与路径点。
 - 农夫乐事（Farmer's Delight）：提供专属棋盘与详细难度分级。
 - 暮色森林（Twilight Forest）：提供专属棋盘与详细难度分级。
 - 灾变（L_Ender's Cataclysm）：提供专属棋盘与详细难度分级。
@@ -58,7 +58,7 @@ This mod keeps the upstream mod's main gameplay, resources, and data layout, and
 
 - JEI: opens item recipe views from bingo card targets.
 - Simple Voice Chat: manages voice groups by team.
-- Xaero's Minimap / World Map: on returning to the lobby after a round, the round's explored map cache and waypoints are cleared automatically to avoid accumulation across games.
+- Xaero's Minimap / World Map: on returning to the lobby after a round, the round's explored map cache and waypoints are cleared automatically.
 - Farmer's Delight: provides a dedicated board and detailed difficulty tiers.
 - Twilight Forest: provides a dedicated board and detailed difficulty tiers.
 - L_Ender's Cataclysm: provides a dedicated board and detailed difficulty tiers.
