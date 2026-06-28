@@ -10,6 +10,7 @@ import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen
 import net.minecraft.network.chat.contents.TranslatableContents
 import net.minecraft.world.level.DataPackConfig
 import net.minecraft.world.level.WorldDataConfiguration
+import net.minecraft.world.flag.FeatureFlags
 import net.neoforged.neoforge.client.event.ScreenEvent
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
 import net.neoforged.neoforge.common.NeoForge
@@ -113,7 +114,19 @@ class BingoWorldController(
                 }
 
                 // actually enable the bingo lobby datapack
-                pair.second.setSelected((pair.second.selectedIds + DATAPACK_ID).reversed())
+                // Also select the built-in feature pack that provides the Bundle experiment, so the
+                // collection bag (bundle) is enabled by default for bingo worlds. We must enable the
+                // feature via its data pack (PackSource.FEATURE) rather than by setting
+                // WorldDataConfiguration.enabledFeatures directly: applyNewPackConfig loads the world
+                // with initMode=true, which makes MinecraftServer.configurePackRepository discard the
+                // passed-in enabledFeatures and derive them solely from the selected packs' requested
+                // features. Selecting the bundle feature pack is exactly what the vanilla Experiments
+                // screen does, and makes the world's enabledFeatures actually contain BUNDLE (so JEI
+                // no longer hides the bundle item).
+                val bundleFeaturePackIds = pair.second.availablePacks
+                    .filter { it.requestedFeatures.contains(FeatureFlags.BUNDLE) }
+                    .map { it.id }
+                pair.second.setSelected((pair.second.selectedIds + DATAPACK_ID + bundleFeaturePackIds).reversed())
 
                 val enabled = ImmutableList.copyOf(pair.second.selectedIds)
                 val disabled = pair.second.availableIds.filter { !enabled.contains(it) }
