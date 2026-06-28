@@ -223,6 +223,11 @@ internal class BingoHudScreen(
         init()
     }
 
+    // Last tab the screen was rebuilt for; render() compares against the live tab
+    // bar selection to detect clicks and rebuild (the tab bar's own callback is
+    // unreliable because the TabImpls expose no children).
+    private var renderedTab: Int = tabsWidget.currentTab
+
     private fun sendReadyForNextRound() {
         packets.readySetV1.send(SetReadyPacket(true))
         // If the screen is paused, it must be closed so that the server can process the ready packet
@@ -468,6 +473,16 @@ internal class BingoHudScreen(
             helper.close()
         }
 
+        // The tab bar handles its own clicks (via the real Screen.mouseClicked),
+        // but its change callback is unreliable, so the screen would not rebuild to
+        // show the newly-selected tab's content. Detect the change each frame and
+        // rebuild + persist it.
+        if (tabsWidget.currentTab != renderedTab) {
+            renderedTab = tabsWidget.currentTab
+            tab?.let { gameOver?.tab = it }
+            init()
+        }
+
         if (sidebarOffsetInterpolate.update()) {
             updatePositions()
         }
@@ -496,6 +511,11 @@ internal class BingoHudScreen(
     }
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
+        // Let the cards widget consume tile/card clicks. Otherwise return false so
+        // ScreenImpl falls through to the REAL Screen.mouseClicked (our super here
+        // is just the IScreen default that returns false), which forwards the click
+        // to the tab bar / buttons. The tab switch itself is picked up in render()
+        // because the tab bar's change callback is unreliable (empty tab children).
         return cardsWidget.onMouseClicked(mouseX, mouseY)
     }
 

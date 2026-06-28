@@ -37,6 +37,11 @@ internal class ResetService(
 ) {
     private companion object {
         const val DYNAMIC_WORLD_RECREATE_ON_RESET_PROPERTY = "exbingo.dynamicWorldRecreateOnReset"
+
+        // Cap on how long we wait for players' entity sections to become
+        // accessible before forcing the tracking refresh anyway. Mirrors
+        // MenuController.MAX_ENTITY_READY_WAIT_TICKS (~5s at 20 tps).
+        const val MAX_ENTITY_TRACKING_WAIT_TICKS = 100
     }
 
     fun resetGame() {
@@ -120,6 +125,19 @@ internal class ResetService(
                     for (player in playerManager.getPlayers()) {
                         player.resyncClientState(syncPosition = true)
                     }
+                    // Rebuild entity-tracker pairings so all clients reliably see
+                    // each other again (fixes the post-reset "players invisible
+                    // until they move close" bug). This MUST wait until each
+                    // player's own entity section is accessible: the lobby
+                    // teleport registers the player via addNewEntityWithoutEvent,
+                    // but startTracking() (which puts the player into
+                    // ChunkMap.entityMap) only fires once their section is
+                    // accessible, and NeoForge promotes entity sections
+                    // asynchronously a few ticks after the chunk loads. Calling
+                    // refreshEntityTracking() before then would iterate an
+                    // entityMap that doesn't yet contain the players and pair
+                    // nothing.
+                    awaitEntityTrackingReadyThenRefresh(waitedTicks = 0)
                     logResetState("third next tick after lobby resync")
                 }
             }
@@ -128,6 +146,59 @@ internal class ResetService(
 
     private fun dynamicWorldRecreateOnReset(): Boolean {
         return java.lang.Boolean.getBoolean(DYNAMIC_WORLD_RECREATE_ON_RESET_PROPERTY)
+    }
+
+    /**
+     * Wait until every player is tracking-ready — registered in the entity tracker
+     * AND their own chunk delivered to the client — before forcing a re-pair.
+     * Re-pairing earlier sends a spawn packet the client discards (its chunk isn't
+     * loaded yet), which is the real cause of the post-reset invisibility. Retries
+     * each tick until all players are ready or [MAX_ENTITY_TRACKING_WAIT_TICKS]
+     * elapses, then refreshes regardless.
+     *
+     * See the call site in [resetGameWorlds] for why the wait is required.
+     */
+    private fun awaitEntityTrackingReadyThenRefresh(waitedTicks: Int) {
+        val players = playerManager.getPlayers()
+        val ready = players.all { it.isEntityTrackingReady() }
+
+        if (!ready && waitedTicks < MAX_ENTITY_TRACKING_WAIT_TICKS) {
+            serverTaskExecutor.executeNextTick {
+                awaitEntityTrackingReadyThenRefresh(waitedTicks + 1)
+            }
+            return
+        }
+
+        if (!ready) {
+            log.error(
+                "[Reset] Players not tracking-ready after {} ticks; refreshing tracking anyway (players may stay invisible until they move)",
+                waitedTicks,
+            )
+        } else if (waitedTicks > 0) {
+            log.info("[Reset] Players tracking-ready after {} tick(s)", waitedTicks)
+        }
+
+        for (player in players) {
+            player.refreshEntityTracking()
+        }
+
+        // Diagnostic: report how many other players can now see each player. If
+        // these counts are < (players-1) the pairing didn't take and the
+        // invisibility bug will reproduce — capture this before blaming movement.
+        if (players.size > 1) {
+            val chunkMap = players.first().serverWorld.chunkSource.chunkMap
+            val visibility = players.joinToString { player ->
+                val viewers = runCatching { chunkMap.getPlayersWatching(player.player).size }
+                    .getOrDefault(-1)
+                "${player.playerName}=$viewers"
+            }
+            log.info(
+                "[Reset] Entity tracking refreshed for {} players; viewers-per-player (expect {}): {}",
+                players.size,
+                players.size - 1,
+                visibility,
+            )
+        }
     }
 
     private fun logResetState(stage: String) {

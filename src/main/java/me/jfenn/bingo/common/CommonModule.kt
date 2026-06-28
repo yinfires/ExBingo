@@ -75,6 +75,10 @@ import me.jfenn.bingo.common.utils.Build
 import me.jfenn.bingo.integrations.chunky.ChunkyController
 import me.jfenn.bingo.integrations.chunky.DummyChunky
 import me.jfenn.bingo.integrations.chunky.IChunkyApiFactory
+import me.jfenn.bingo.integrations.xaero.DummyXaeroMapApi
+import me.jfenn.bingo.integrations.xaero.IXaeroMapApi
+import me.jfenn.bingo.integrations.xaero.IXaeroMapApiFactory
+import me.jfenn.bingo.integrations.xaero.XaeroMapController
 import me.jfenn.bingo.integrations.permissions.FallbackPermissionsApi
 import me.jfenn.bingo.integrations.permissions.IPermissionsApi
 import me.jfenn.bingo.integrations.permissions.IPermissionsApiFactory
@@ -181,6 +185,12 @@ val commonModule = module {
         ServiceLoader.load(IVoiceApiFactory::class.java)
             .firstNotNullOfOrNull { it.create(get()) }
             ?: DummyVoiceApi
+    }
+
+    single<IXaeroMapApi> {
+        ServiceLoader.load(IXaeroMapApiFactory::class.java)
+            .firstNotNullOfOrNull { it.create(get()) }
+            ?: DummyXaeroMapApi
     }
 
     single {
@@ -363,6 +373,8 @@ val commonModule = module {
         scoped { get<IChunkyApiFactory>().create(this) }
         scopedOf(::ChunkyController)
 
+        scopedOf(::XaeroMapController)
+
         scopedOf(::VoiceGroupController)
 
         scopedOf(::PlayerAdvancementTrackerMixinHelper)
@@ -459,6 +471,7 @@ fun Scope.commonInit() {
     get<SpawnPreloadingController>()
 
     get<ChunkyController>()
+    get<XaeroMapController>()
     get<VoiceGroupController>()
 
     get<PlayerAdvancementTrackerMixinHelper>()

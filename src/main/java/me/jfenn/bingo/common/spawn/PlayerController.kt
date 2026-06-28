@@ -121,7 +121,7 @@ internal class PlayerController(
             state.state == GameState.PLAYING &&
             oldPlayerState.lastGameId != null &&
             oldPlayerState.lastGameId == newPlayerState.lastGameId &&
-            oldPlayerState.lastState in setOf(GameState.LOADING, GameState.COUNTDOWN)
+            oldPlayerState.lastState in setOf(GameState.LOADING, GameState.COUNTDOWN, GameState.POSTGAME)
         val isStuckInLobby = player.serverWorld == lobbyWorld && state.state != GameState.PREGAME
         val isStuckInWorld = player.serverWorld != lobbyWorld && state.state == GameState.PREGAME
         val hasCountdownInvisibility = player.getEffects()
@@ -462,8 +462,12 @@ internal fun shouldRespawnPlayer(
     if (
         state == GameState.PLAYING &&
         sameGame &&
-        oldPlayerState.lastState in setOf(GameState.LOADING, GameState.COUNTDOWN)
+        oldPlayerState.lastState in setOf(GameState.LOADING, GameState.COUNTDOWN, GameState.POSTGAME)
     ) {
+        // Don't respawn (and wipe inventory) when the same game transitions into
+        // PLAYING from loading/countdown, or is resumed from POSTGAME ("Keep
+        // Playing") — in the resume case GameResumeService has already restored
+        // each player's saved inventory and position.
         return false
     }
 

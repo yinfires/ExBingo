@@ -1,0 +1,23 @@
+package me.jfenn.bingo.integrations.xaero
+
+import net.minecraft.server.level.ServerPlayer
+
+/**
+ * Server-side integration with Xaero's Minimap / World Map.
+ *
+ * Used to give each bingo round its own Xaero "world id" (map cache namespace).
+ * Returning to the lobby after a game switches every client to a fresh world id,
+ * so the just-finished round's explored tiles and waypoints are no longer shown
+ * — the only thing that hides them at runtime, since deleting the on-disk cache
+ * does not affect Xaero's already-loaded in-memory map (and a return-to-lobby is
+ * a dimension change, not a disconnect).
+ */
+interface IXaeroMapApi {
+    fun isInstalled(): Boolean
+
+    /**
+     * Switch the given players' Xaero map to a fresh world id, isolating the
+     * finished round's map/waypoints from what is shown next.
+     */
+    fun switchToFreshMapWorld(players: List<ServerPlayer>)
+}

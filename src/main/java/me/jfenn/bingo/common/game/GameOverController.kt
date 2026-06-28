@@ -104,9 +104,18 @@ internal class GameOverController(
         isUpdate: Boolean,
     ) {
         if (!isUpdate) {
-            // On the first call, ensure that all players are sent updated card data
+            // On the first call, ensure that all players are sent updated card data.
             for (team in state.getRegisteredTeams()) {
                 cardViewService.updateCard(team, forceNotFlashing = true)
+            }
+            // updateCard only diffs against the server's last-sent view and only
+            // reaches current viewers, so a client that never received an
+            // opponent's card during the game (common for non-host players) would
+            // show an empty board on the end screen. Force a full per-player
+            // resync of every viewable card now that the state is POSTGAME (where
+            // all players may view all cards).
+            for (player in playerManager.getPlayers()) {
+                cardViewService.sendUpdatePackets(player)
             }
         }
 

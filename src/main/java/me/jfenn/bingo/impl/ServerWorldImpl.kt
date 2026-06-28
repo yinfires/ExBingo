@@ -593,11 +593,15 @@ class ServerWorldImpl(
     override fun areChunkEntitiesReady(chunk: Pair<Int, Int>): Boolean {
         val chunkLong = ChunkPos.asLong(chunk.first, chunk.second)
         val diagnostics = collectEntityChunkLifecycleDiagnostics(world, chunkLong)
-        // The chunk's persisted entities are only visible to allEntities once they've drained out
-        // of the loading inbox AND the chunk's entity section is LOADED/TICKING. Require both, plus
-        // a globally-empty inbox so neighbouring menu chunks aren't still mid-load.
-        return diagnostics.loadingInboxSize == 0 &&
-                isEntityChunkLifecycleHealthy(diagnostics.loadStatus, diagnostics.visibility)
+        // The chunk's persisted entities are live once its entity section is
+        // LOADED/TICKING. We previously also required a globally-empty loading
+        // inbox, but under entity-load pressure the inbox can stay non-empty
+        // indefinitely (observed stuck at 8/705), so that gate never passed and
+        // the lobby menu only spawned via the 100-tick timeout fallback — which
+        // also left players' entity tracking unsettled (the "others invisible"
+        // bug). The per-chunk LOADED+TICKING status already means THIS chunk's
+        // entities have drained from the inbox, which is what we actually need.
+        return isEntityChunkLifecycleHealthy(diagnostics.loadStatus, diagnostics.visibility)
     }
 
     override fun getChunkAsync(chunk: Pair<Int, Int>): CompletableFuture<IChunk?> {

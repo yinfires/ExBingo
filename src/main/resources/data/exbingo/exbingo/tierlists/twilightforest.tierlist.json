@@ -203,7 +203,10 @@
         "twilightforest:knight_phantom_banner_pattern",
         "twilightforest:snow_queen_banner_pattern",
         "twilightforest:ur_ghast_banner_pattern",
-        "twilightforest:alpha_yeti_banner_pattern"
+        "twilightforest:alpha_yeti_banner_pattern",
+        "twilightforest:beanstalk_leaves",
+        "twilightforest:thorn_leaves",
+        "twilightforest:hollow_oak_sapling"
     ],
     "A": [
         "twilightforest:knightmetal_axe",
@@ -363,7 +366,8 @@
         "twilightforest:gold_berry",
         "twilightforest:iron_berry",
         "twilightforest:essence_berry",
-        "twilightforest:berry_medley"
+        "twilightforest:berry_medley",
+        "twilightforest:rainbow_oak_leaves"
     ],
     "C": [
         "twilightforest:acacia_banister",
@@ -548,7 +552,6 @@
     "D": [
         "twilightforest:canopy_sapling",
         "twilightforest:darkwood_sapling",
-        "twilightforest:hollow_oak_sapling",
         "twilightforest:mangrove_sapling",
         "twilightforest:rainbow_oak_sapling",
         "twilightforest:twilight_oak_sapling",
@@ -560,7 +563,6 @@
         "twilightforest:mushgloom",
         "twilightforest:root",
         "twilightforest:shika_senbei",
-        "twilightforest:beanstalk_leaves",
         "twilightforest:canopy_leaves",
         "twilightforest:canopy_log",
         "twilightforest:canopy_planks",
@@ -572,7 +574,6 @@
         "twilightforest:mangrove_log",
         "twilightforest:mangrove_planks",
         "twilightforest:mangrove_wood",
-        "twilightforest:rainbow_oak_leaves",
         "twilightforest:stripped_canopy_log",
         "twilightforest:stripped_canopy_wood",
         "twilightforest:stripped_dark_log",
@@ -581,7 +582,6 @@
         "twilightforest:stripped_mangrove_wood",
         "twilightforest:stripped_twilight_oak_log",
         "twilightforest:stripped_twilight_oak_wood",
-        "twilightforest:thorn_leaves",
         "twilightforest:twilight_oak_leaves",
         "twilightforest:twilight_oak_log",
         "twilightforest:twilight_oak_planks",

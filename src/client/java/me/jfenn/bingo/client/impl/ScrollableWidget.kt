@@ -33,7 +33,7 @@ class ScrollableWidget(
     }
 
     override fun renderWidget(context: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
-        setRectangle(content.x, content.y, content.width, content.height)
+        setRectangle(content.width, content.height, content.x, content.y)
         this.contentPadding = content.padding
 
         super.renderWidget(context, mouseX, mouseY, delta)

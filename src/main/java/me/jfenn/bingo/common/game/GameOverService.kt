@@ -270,11 +270,9 @@ internal class GameOverService(
         val playerInfo = info.playerInfo[player.uuid]
         val isWinner = winningTeam?.includesPlayer(player.player) ?: false
 
-        val defaultTab = when {
-            // If there are multiple teams & either more than one team completed the game, or the game was a draw
-            scoreRankings.size > 1 && scoreRankings.count { it.duration != null } != 1 -> GameOverPacket.EndScreenTab.SCORES
-            else -> GameOverPacket.EndScreenTab.CARDS
-        }
+        // Always open on the board tab; players expect to see each team's final
+        // board first. (Previously multi-team / draw games defaulted to SCORES.)
+        val defaultTab = GameOverPacket.EndScreenTab.CARDS
 
         return GameOverPacket(
             title = title,

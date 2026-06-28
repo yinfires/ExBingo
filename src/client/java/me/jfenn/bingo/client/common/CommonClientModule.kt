@@ -24,6 +24,7 @@ import me.jfenn.bingo.client.integrations.SimpleVoiceChatHudCompat
 import me.jfenn.bingo.client.integrations.YetAnotherConfigLibIntegration
 import me.jfenn.bingo.client.integrations.jei.IJeiApi
 import me.jfenn.bingo.client.integrations.jei.IJeiApiFactory
+import me.jfenn.bingo.client.integrations.xaero.XaeroCacheCleaner
 import org.koin.core.module.dsl.createdAtStart
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
@@ -55,6 +56,9 @@ val commonClientModule = module {
 
     singleOf(::BingoWorldManager) withOptions { createdAtStart() }
     singleOf(::SimpleVoiceChatHudCompat) withOptions { createdAtStart() }
+
+    singleOf(::XaeroCacheCleaner) withOptions { createdAtStart() }
+
 
     singleOf(::ClientSettingsService)
     singleOf(::ClientSettingsController) withOptions { createdAtStart() }

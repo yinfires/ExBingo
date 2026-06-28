@@ -57,6 +57,7 @@ internal class ClientPacketEvents(
     val countdownV1 = clientNetworking.registerS2C(CountdownPacket.V1)
     val tooltipV1 = clientNetworking.registerS2C(TooltipPacket.V1)
 
+
     val readyUpdateV1 = clientNetworking.registerS2C(ReadyUpdatePacket.V1)
     val readyUpdateV2 = clientNetworking.registerS2C(ReadyUpdatePacket.V2)
     val readyUpdateV3 = clientNetworking.registerS2C(ReadyUpdatePacket.V3)

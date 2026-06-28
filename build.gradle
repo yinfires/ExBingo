@@ -41,6 +41,14 @@ repositories {
         url = 'https://maven.maxhenkel.de/repository/public'
         content { includeGroup('de.maxhenkel.voicechat') }
     }
+    maven {
+        name = "Xaero's Maven"
+        url = 'https://chocolateminecraft.com/maven'
+        content {
+            includeGroup('xaero.minimap')
+            includeGroup('xaero.lib')
+        }
+    }
 }
 
 repositories.configureEach { repo ->
@@ -152,6 +160,8 @@ dependencies {
     localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 
     compileOnly "de.maxhenkel.voicechat:voicechat-api:${voicechat_api_version}"
+
+    compileOnly "xaero.minimap:xaerominimap-neoforge-${minecraft_version}:${xaero_minimap_version}"
 
     jarJar "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
     jarJar "org.jetbrains.kotlin:kotlin-reflect:${kotlin_version}"

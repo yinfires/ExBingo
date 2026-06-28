@@ -51,5 +51,10 @@
       <option name="name" value="Simple Voice Chat" />
       <option name="url" value="https://maven.maxhenkel.de/repository/public" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="Xaero's Maven" />
+      <option name="name" value="Xaero's Maven" />
+      <option name="url" value="https://chocolateminecraft.com/maven" />
+    </remote-repository>
   </component>
 </project>

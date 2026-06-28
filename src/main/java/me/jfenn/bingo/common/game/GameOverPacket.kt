@@ -41,12 +41,8 @@ data class GameOverPacket(
     val seed: Long?,
 
     val scores: List<ScoreRanking> = emptyList(),
-    val defaultTab: EndScreenTab = run {
-        // If there are multiple teams & either more than one team completed the game, or the game was a draw
-        if (scores.size > 1 && scores.count { it.duration != null } != 1)
-            EndScreenTab.SCORES
-        else EndScreenTab.CARDS
-    },
+    // Default to the board tab so the end screen opens on the bingo boards.
+    val defaultTab: EndScreenTab = EndScreenTab.CARDS,
 ) {
 
     enum class EndScreenTab(val title: StringKey) {

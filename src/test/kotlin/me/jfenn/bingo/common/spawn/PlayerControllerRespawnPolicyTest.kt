@@ -76,4 +76,26 @@ class PlayerControllerRespawnPolicyTest {
             ),
         )
     }
+
+    @Test
+    fun `resuming the same game from postgame does not respawn and wipe inventory`() {
+        val oldState = PlayerState(
+            lastGameId = gameId,
+            lastState = GameState.POSTGAME,
+        )
+        val newState = PlayerState(
+            lastGameId = gameId,
+            lastState = GameState.PLAYING,
+        )
+
+        assertFalse(
+            shouldRespawnPlayer(
+                oldPlayerState = oldState,
+                newPlayerState = newState,
+                state = GameState.PLAYING,
+                forceReset = false,
+                isOnActiveTeam = true,
+            ),
+        )
+    }
 }

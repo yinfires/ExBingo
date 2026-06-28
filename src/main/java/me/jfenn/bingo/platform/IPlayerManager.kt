@@ -121,6 +121,23 @@ interface IPlayerHandle : ILivingEntity {
      * sent and should not be repeated.
      */
     fun resyncClientState(syncPosition: Boolean = true)
+
+    /**
+     * Re-add this player to the world's chunk/entity tracker (without removing
+     * first), forcing the tracker to re-evaluate pairings so this player and the
+     * others in range become mutually visible again. Used after the post-reset
+     * lobby teleport, where a probabilistic tracking race could otherwise leave
+     * players unable to see each other until they move close.
+     */
+    fun refreshEntityTracking()
+
+    /**
+     * True once this player is registered in the server entity tracker AND its own
+     * chunk has been delivered to the client — i.e. the moment at which forcing a
+     * re-pair via [refreshEntityTracking] will actually make the player render on
+     * other clients instead of being discarded for a not-yet-loaded chunk.
+     */
+    fun isEntityTrackingReady(): Boolean
 }
 
 interface IPlayerAbilities {

@@ -67,8 +67,12 @@ internal class BingoEndScoresWidget(
                 .let { if (isObfuscated) it.formatted(ChatFormatting.OBFUSCATED) else it }
 
             val y = (i + 1) * entryHeight + yOffset
+            // Clip the team text so long/multi-player team names don't overflow
+            // into the score column (which showed as half-rendered names).
+            val teamColMaxWidth = (scoreCol - teamCol - 4).coerceAtLeast(0)
+            val teamTextClipped = client.font.truncate(teamText, teamColMaxWidth)
             drawService.drawText(
-                teamText,
+                teamTextClipped,
                 teamCol, y,
                 0xFF_FFFFFF.toInt(), true
             )
@@ -85,7 +89,7 @@ internal class BingoEndScoresWidget(
                 0xFF_FFFFFF.toInt(), true
             )
 
-            val isTextHovered = mouseX in teamCol..drawService.font.getTextWidth(teamText)
+            val isTextHovered = mouseX in teamCol..(teamCol + client.font.getTextWidth(teamTextClipped))
                     && mouseY in (y - yOffset)..(y - yOffset + entryHeight)
             if (isTextHovered) {
                 val view = gameOver.cards.find { it.teamKey == score.key }
