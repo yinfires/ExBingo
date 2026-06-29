@@ -30,7 +30,9 @@ internal fun MenuComponent.registerDimensionMenu(
     )
 
     val dimensionLabels = dimensions.map { identifier ->
-        val key = "bingo.dimension." + identifier.replace(':', '.').replace('/', '.')
+        // 使用标准维度翻译键 dimension.<namespace>.<path>，复用各模组/原版及本资源包提供的维度名翻译，
+        // 不再维护独立的 bingo.dimension.* 键。
+        val key = "dimension." + identifier.replace(':', '.').replace('/', '.')
         val fallback = identifier.substringAfterLast(':').formatTitle()
         text.translatable(key, fallback)
     }

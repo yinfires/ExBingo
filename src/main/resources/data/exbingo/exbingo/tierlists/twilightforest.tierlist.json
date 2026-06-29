@@ -1,6 +1,7 @@
 {
     "replace": false,
     "S": [
+        "twilightforest:moon_dial",
         "twilightforest:mining_banister",
         "twilightforest:mining_boat",
         "twilightforest:mining_button",
@@ -341,7 +342,6 @@
         "twilightforest:moonworm",
         "twilightforest:ore_meter",
         "twilightforest:pocket_watch",
-        "twilightforest:moon_dial",
         "twilightforest:copper_oreberry",
         "twilightforest:essence_oreberry",
         "twilightforest:gold_oreberry",
