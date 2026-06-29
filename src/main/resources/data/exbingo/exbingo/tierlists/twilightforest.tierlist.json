@@ -1,6 +1,7 @@
 {
     "replace": false,
     "S": [
+        "twilightforest:arborist",
         "twilightforest:moon_dial",
         "twilightforest:mining_banister",
         "twilightforest:mining_boat",
@@ -544,7 +545,6 @@
         "twilightforest:wispy_cloud",
         "twilightforest:wrought_iron_fence",
         "twilightforest:twilight_hunter",
-        "twilightforest:arborist",
         "twilightforest:hill1",
         "twilightforest:hill2",
         "twilightforest:hill3"

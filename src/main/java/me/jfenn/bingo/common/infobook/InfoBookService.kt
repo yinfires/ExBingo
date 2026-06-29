@@ -118,6 +118,23 @@ internal class InfoBookService(
             .append("\n\n")
             .append(text.string(StringKey.IntroAutotierNote).formatted(ChatFormatting.GRAY))
 
+    private fun getCardDisablePage() =
+        textFactory.empty()
+            .append(text.string(StringKey.IntroCarddisableTitle).formatted(ChatFormatting.BOLD))
+            .append("\n\n")
+            .append(text.string(StringKey.IntroCarddisableIntro))
+            .append("\n\n")
+            .append(
+                text.string(
+                    StringKey.IntroCarddisable,
+                    text.string(StringKey.IntroCarddisableCommandLink)
+                        .formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE)
+                        .also { it.setClickEvent(TextAction.SuggestCommand("/bingo carddisable ")) },
+                )
+            )
+            .append("\n\n")
+            .append(text.string(StringKey.IntroCarddisableNote).formatted(ChatFormatting.GRAY))
+
     private fun toggleText(
         value: Boolean,
         name: StringKey,
@@ -248,6 +265,10 @@ internal class InfoBookService(
             // mod compatibility & auto-tiering (ops only — it can write server config)
             if (permissions.hasPermission(player, Permission.COMMAND_AUTOTIER))
                 add(getModCompatPage())
+
+            // disabling boards (ops only — it writes server config)
+            if (permissions.hasPermission(player, Permission.COMMAND_CARD_TOGGLE))
+                add(getCardDisablePage())
         })
     }
 

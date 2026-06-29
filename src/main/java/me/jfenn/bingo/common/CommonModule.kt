@@ -14,6 +14,7 @@ import me.jfenn.bingo.common.card.autotier.AutoTierCommand
 import me.jfenn.bingo.common.card.autotier.AutoTierService
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterCommand
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterService
+import me.jfenn.bingo.common.card.filter.CardToggleCommand
 import me.jfenn.bingo.common.card.objective.*
 import me.jfenn.bingo.common.card.tag.*
 import me.jfenn.bingo.common.chat.ChatCommand
@@ -154,6 +155,7 @@ val commonModule = module {
     singleOf(::StatsCommand)
     singleOf(::ObjectiveFilterCommand)
     singleOf(::AutoTierCommand)
+    singleOf(::CardToggleCommand)
     singleOf(::InfoBookCommand)
     singleOf(::DataCommands)
 
@@ -414,6 +416,7 @@ fun Koin.commonInit() {
     get<StatsCommand>()
     get<ObjectiveFilterCommand>()
     get<AutoTierCommand>()
+    get<CardToggleCommand>()
     get<InfoBookCommand>()
     get<DataCommands>()
 

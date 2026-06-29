@@ -21,6 +21,33 @@ internal fun MenuComponent.registerRadioMenu(
     optionsPerPage: Int = (height / (MENU_LINE_HEIGHT + MENU_LINE_PADDING)).toInt() - 2,
     selectedIndexProp: MutableProperty<Int>,
     onChange: (IPlayerHandle, Int) -> Unit = { _, _ -> },
+) = registerRadioMenu(
+    position = position,
+    width = width,
+    height = height,
+    title = title,
+    optionsProvider = { options },
+    tooltipsProvider = { tooltips },
+    optionsPerPage = optionsPerPage,
+    selectedIndexProp = selectedIndexProp,
+    onChange = onChange,
+)
+
+/**
+ * Like [registerRadioMenu], but the option/tooltip lists are read fresh on every render via the
+ * providers, so the menu reflects live changes (e.g. boards disabled by an op) without needing
+ * the whole lobby menu to be rebuilt.
+ */
+internal fun MenuComponent.registerRadioMenu(
+    position: Vector3d,
+    width: Double,
+    height: Double,
+    title: IText,
+    optionsProvider: () -> List<IText>,
+    tooltipsProvider: () -> List<List<IText>> = { emptyList() },
+    optionsPerPage: Int = (height / (MENU_LINE_HEIGHT + MENU_LINE_PADDING)).toInt() - 2,
+    selectedIndexProp: MutableProperty<Int>,
+    onChange: (IPlayerHandle, Int) -> Unit = { _, _ -> },
 ) {
     val offset = Vector3d()
 
@@ -34,12 +61,11 @@ internal fun MenuComponent.registerRadioMenu(
     val pageState = RadioMenuState(
         selectedPage = selectedIndex / optionsPerPage
     )
-    val pagesLength = ceil(options.size / optionsPerPage.toFloat()).toInt()
 
     val optionHeight = ((height - 3*MENU_LINE_PADDING - 2*MENU_LINE_HEIGHT) / optionsPerPage) - MENU_LINE_PADDING
     for (i in 0 until optionsPerPage) {
         val itemIndex by computedProperty {
-            (pageState.selectedPage*optionsPerPage + i).takeIf { it in options.indices }
+            (pageState.selectedPage*optionsPerPage + i).takeIf { it in optionsProvider().indices }
         }
 
         registerTileButton(
@@ -48,10 +74,10 @@ internal fun MenuComponent.registerRadioMenu(
             height = optionHeight,
             text = text.empty(),
             textProp = computedProperty {
-                itemIndex?.let { options.getOrNull(it) } ?: text.empty()
+                itemIndex?.let { optionsProvider().getOrNull(it) } ?: text.empty()
             },
             tooltipProp = computedProperty {
-                itemIndex?.let { tooltips.getOrNull(it) }
+                itemIndex?.let { tooltipsProvider().getOrNull(it) }
             },
             isActiveProp = computedProperty { selectedIndex == itemIndex },
         ) { player ->
@@ -65,11 +91,14 @@ internal fun MenuComponent.registerRadioMenu(
         height = MENU_LINE_HEIGHT,
         valueProp = propertyRef(pageState::selectedPage),
         minValueProp = ConstantProperty(0),
-        maxValueProp = ConstantProperty(pagesLength-1),
-        isVisible = { options.size > optionsPerPage },
+        maxValueProp = computedProperty {
+            ceil(optionsProvider().size / optionsPerPage.toFloat()).toInt() - 1
+        },
+        isVisible = { optionsProvider().size > optionsPerPage },
         increaseLabel = "»",
         decreaseLabel = "«",
         format = { page ->
+            val pagesLength = ceil(optionsProvider().size / optionsPerPage.toFloat()).toInt()
             (0 until pagesLength)
                 .map { i ->
                     val hasSelected = selectedIndex in i*optionsPerPage until (i+1)*optionsPerPage

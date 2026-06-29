@@ -8,6 +8,7 @@ import me.jfenn.bingo.common.MOD_ID_MINECRAFT
 import me.jfenn.bingo.common.card.data.ObjectiveRequirements
 import me.jfenn.bingo.common.card.filter.ObjectiveFilter
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
+import me.jfenn.bingo.common.card.filter.ObjectiveFilterService
 import me.jfenn.bingo.common.card.objective.BingoObjective
 import me.jfenn.bingo.common.card.objective.BingoObjectiveManager
 import me.jfenn.bingo.common.card.objective.objectiveError
@@ -44,6 +45,7 @@ internal class CardService(
     private val tagExpansionService: TagExpansionService,
     private val text: TextProvider,
     private val spawnKitService: SpawnKitService,
+    private val objectiveFilterService: ObjectiveFilterService,
 ) {
 
     private val supportedObjectiveIds = cacheFor(5.seconds) { _: Unit ->
@@ -320,6 +322,33 @@ internal class CardService(
         }
     }
 
+    /**
+     * Tags that ops have disabled via /bingo carddisable, expressed as exclusions to apply during
+     * card generation. For every disabled board (filter preset) we take its `from=<mod>` and
+     * `type=<type>` selectors and turn them into excludes, so the disabled mod/type content is
+     * kept off cards even under broad filters like "Everything" that don't name the board. Other
+     * selectors (e.g. tier-list names) are intentionally ignored, per the chosen rubric: only the
+     * mod/type origin of a disabled board is excluded, never broader categories.
+     */
+    private fun disabledBoardExcludeTags(): Set<String> {
+        val disabled = configService.config.disabledFilterPresets
+        if (disabled.isEmpty()) return emptySet()
+
+        val presets = objectiveFilterService.getAllPresetFilters()
+        return buildSet {
+            for (id in disabled) {
+                val preset = presets[id] ?: continue
+                for (filter in preset.value) {
+                    if (filter is ObjectiveFilter.Include || filter is ObjectiveFilter.Count) {
+                        if (filter.tag.startsWith("from=") || filter.tag.startsWith("type=")) {
+                            add(filter.tag)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private fun getTierLists(
         filterList: ObjectiveFilterList,
     ): Map<String, TierListConfig> {
@@ -435,6 +464,13 @@ internal class CardService(
             .filterIsInstance<ObjectiveFilter.Exclude>()
             .mapNotNull { getFilterTag(tags, it) }
             .toMutableList()
+
+        // Exclude the mod/type content of any board an op has disabled, so it never reaches a
+        // card even under broad filters (e.g. "Everything") that don't name the board. Applied
+        // on top of the explicit exclude filters above.
+        disabledBoardExcludeTags()
+            .mapNotNull { tags[it] }
+            .forEach { excludeFilters.add(it) }
 
         // Default-excluded content (mod-uncategorized & unbreakable) may ONLY be brought
         // back by a *targeted* opt-in — i.e. the filter explicitly names the `uncategorized`

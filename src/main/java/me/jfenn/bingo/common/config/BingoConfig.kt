@@ -17,6 +17,12 @@ data class BingoConfig(
     var itemFilterPresets: Map<String, ObjectiveFilterList> = ObjectiveFilterList.PRESETS,
     var difficultyPresets: Map<String, List<Int>> = TierLabel.DIFFICULTY_PRESETS,
 
+    // ids of filter presets ("boards") that ops have disabled. Disabled boards are hidden
+    // from the board-selection menu and never returned by the preset list, so they can't be
+    // picked individually or via any "select all" enumeration. Managed by /bingo cardenable
+    // & /bingo carddisable; persisted server-side in config.json.
+    var disabledFilterPresets: Set<String> = emptySet(),
+
     // adds BINGO_IGNORE to spawn kit items, preventing them from being scored
     val preventScoringSpawnKitItems: Boolean = false,
     // excludes the active spawn kit items from item tiers when generating a card

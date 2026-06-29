@@ -17,11 +17,9 @@ internal fun MenuComponent.registerItemFilters(
     objectiveFilterService: ObjectiveFilterService = koinScope.get(),
     optionsService: OptionsService = koinScope.get(),
 ) {
-    val presets = objectiveFilterService.getPresetFilters()
-
     val selectedIndexProp = DelegatedProperty(
         getter = {
-            presets.values.indexOfFirst { itemFilter ->
+            objectiveFilterService.getPresetFilters().values.indexOfFirst { itemFilter ->
                 state.getActiveCard().options.itemFilter == itemFilter.value
             }
         },
@@ -33,24 +31,27 @@ internal fun MenuComponent.registerItemFilters(
         width = width,
         height = height,
         title = text.string(StringKey.OptionsFilter),
-        options = presets.values.map {
-            it.name(this.text)
+        optionsProvider = {
+            objectiveFilterService.getPresetFilters().values.map { it.name(this.text) }
         },
-        tooltips = presets.values.map { value ->
-            buildList {
-                add(
-                    text.string(StringKey.OptionsFilter)
-                        .append(": ")
-                        .append(value.name(text))
-                        .formatted(ChatFormatting.GREEN)
-                )
-                add(text.string(StringKey.OptionsFilterTooltip))
-                add(text.literal(value.value.toString()).formatted(ChatFormatting.GRAY))
+        tooltipsProvider = {
+            objectiveFilterService.getPresetFilters().values.map { value ->
+                buildList {
+                    add(
+                        text.string(StringKey.OptionsFilter)
+                            .append(": ")
+                            .append(value.name(text))
+                            .formatted(ChatFormatting.GREEN)
+                    )
+                    add(text.string(StringKey.OptionsFilterTooltip))
+                    add(text.literal(value.value.toString()).formatted(ChatFormatting.GRAY))
+                }
             }
         },
         selectedIndexProp = selectedIndexProp,
     ) { player, index ->
-        val preset = presets.values.elementAtOrNull(index) ?: return@registerRadioMenu
+        val preset = objectiveFilterService.getPresetFilters().values.elementAtOrNull(index)
+            ?: return@registerRadioMenu
         optionsService.setCardFilter(
             ctx = OptionsService.Context(player),
             card = state.getActiveCard(),

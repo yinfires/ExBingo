@@ -39,6 +39,9 @@ internal object Permission {
     /** "/bingo autotier" command - OP only, writes server-side config */
     val COMMAND_AUTOTIER = PermissionKey("$MOD_ID.command.autotier", PermissionDefault.OPERATORS)
 
+    /** "/bingo carddisable" & "/bingo cardenable" commands - OP only, writes server-side config */
+    val COMMAND_CARD_TOGGLE = PermissionKey("$MOD_ID.command.card_toggle", PermissionDefault.OPERATORS)
+
     /** "/bingo debug" command */
     val COMMAND_DEBUG = PermissionKey("$MOD_ID.command.debug", PermissionDefault.OPERATORS)
 
