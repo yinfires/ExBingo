@@ -1,0 +1,26 @@
+{
+    "replace": false,
+    "S": [
+        "netherman:manipulator_stick",
+        "netherman:azazel_trophy",
+        "netherman:kill_azazel"
+    ],
+    "A": [
+        "netherman:chance_totem",
+        "netherman:enter_mansion",
+        "netherman:tame_ghastly"
+    ],
+    "B": [
+        "netherman:crimson_arrow",
+        "netherman:crimson_honey_bottle",
+        "netherman:note"
+    ],
+    "C": [
+        "netherman:blackstone_axon",
+        "netherman:blackstone_column",
+        "netherman:blackstone_plant",
+        "netherman:crimson_honey_block",
+        "netherman:crimson_web",
+        "netherman:pointed_blackstone"
+    ]
+}

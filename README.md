@@ -16,6 +16,14 @@ ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-b
 - 农夫乐事（Farmer's Delight）：提供专属棋盘与详细难度分级。
 - 暮色森林（Twilight Forest）：提供专属棋盘与详细难度分级。
 - 灾变（L_Ender's Cataclysm）：提供专属棋盘与详细难度分级。
+- 冰火传说（Ice and Fire）：提供专属棋盘与详细难度分级。
+- 永恒星光（Eternal Starlight）：提供专属棋盘与详细难度分级。
+- 逆卡巴拉：觉醒（Qliphoth Awakening）：提供专属棋盘与详细难度分级。
+- 蜜蜂领域（The Bumblezone）：提供专属棋盘与详细难度分级。
+- Mowzie 的生物（Mowzie's Mobs）：提供专属棋盘与详细难度分级。
+- 阿撒泻勒邪教（Cult of Azazel）：提供专属棋盘与详细难度分级。
+- Iron 的法术与魔法书（Iron's Spells 'n Spellbooks）：提供专属棋盘与详细难度分级。
+- 深暗之园（The Undergarden）：提供专属棋盘与详细难度分级。
 
 **棋盘内容兼容**
 
@@ -72,6 +80,14 @@ This mod keeps the upstream mod's main gameplay, resources, and data layout, and
 - Farmer's Delight: provides a dedicated board and detailed difficulty tiers.
 - Twilight Forest: provides a dedicated board and detailed difficulty tiers.
 - L_Ender's Cataclysm: provides a dedicated board and detailed difficulty tiers.
+- Ice and Fire: provides a dedicated board and detailed difficulty tiers.
+- Eternal Starlight: provides a dedicated board and detailed difficulty tiers.
+- Qliphoth Awakening: provides a dedicated board and detailed difficulty tiers.
+- The Bumblezone: provides a dedicated board and detailed difficulty tiers.
+- Mowzie's Mobs: provides a dedicated board and detailed difficulty tiers.
+- Cult of Azazel: provides a dedicated board and detailed difficulty tiers.
+- Iron's Spells 'n Spellbooks: provides a dedicated board and detailed difficulty tiers.
+- The Undergarden: provides a dedicated board and detailed difficulty tiers.
 
 **Card content compatibility**
 

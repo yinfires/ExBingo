@@ -1,0 +1,64 @@
+{
+    "replace": false,
+    "S": [
+        "fdbosses:lightning_core",
+        "fdbosses:justice_core",
+        "fdbosses:fire_and_ice_core",
+        "fdbosses:malkuth_fist",
+        "fdbosses:divine_gear",
+        "fdbosses:phase_sphere",
+        "fdbosses:chesed_trophy",
+        "fdbosses:geburah_trophy",
+        "fdbosses:malkuth_trophy",
+        "fdbosses:justicestone_bricks",
+        "fdbosses:chiseled_justicestone_bricks",
+        "fdbosses:justicestone_beam",
+        "fdbosses:justicestone_column",
+        "fdbosses:justicestone_wall",
+        "fdbosses:justicestone_column_wall",
+        "fdbosses:justicestone_stairs",
+        "fdbosses:justicestone_bricks_slab",
+        "fdbosses:polished_justicestone",
+        "fdbosses:polished_justicestone_stairs",
+        "fdbosses:polished_justicestone_slab",
+        "fdbosses:qliphoth_awakening/chesed",
+        "fdbosses:qliphoth_awakening/geburah",
+        "fdbosses:qliphoth_awakening/malkuth"
+    ],
+    "B": [
+        "fdbosses:eye_of_chesed",
+        "fdbosses:eye_of_geburah",
+        "fdbosses:eye_of_malkuth",
+        "fdbosses:qliphoth_awakening/root"
+    ],
+    "groups": [
+        [
+            "fdbosses:eye_of_chesed",
+            "fdbosses:eye_of_geburah",
+            "fdbosses:eye_of_malkuth"
+        ],
+        [
+            "fdbosses:lightning_core",
+            "fdbosses:justice_core",
+            "fdbosses:fire_and_ice_core"
+        ],
+        [
+            "fdbosses:chesed_trophy",
+            "fdbosses:geburah_trophy",
+            "fdbosses:malkuth_trophy"
+        ],
+        [
+            "fdbosses:justicestone_bricks",
+            "fdbosses:chiseled_justicestone_bricks",
+            "fdbosses:justicestone_beam",
+            "fdbosses:justicestone_column",
+            "fdbosses:justicestone_wall",
+            "fdbosses:justicestone_column_wall",
+            "fdbosses:justicestone_stairs",
+            "fdbosses:justicestone_bricks_slab",
+            "fdbosses:polished_justicestone",
+            "fdbosses:polished_justicestone_stairs",
+            "fdbosses:polished_justicestone_slab"
+        ]
+    ]
+}

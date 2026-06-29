@@ -58,6 +58,78 @@
       },
       "value": "+from=cataclysm -uncategorized -unobtainable -unbreakable",
       "requiredMods": ["cataclysm"]
+    },
+    {
+      "id": "iceandfire",
+      "name": {
+        "translate": "bingo.list.iceandfire",
+        "fallback": "Ice and Fire"
+      },
+      "value": "+from=iceandfire -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["iceandfire"]
+    },
+    {
+      "id": "eternalstarlight",
+      "name": {
+        "translate": "bingo.list.eternalstarlight",
+        "fallback": "Eternal Starlight"
+      },
+      "value": "+from=eternal_starlight -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["eternal_starlight"]
+    },
+    {
+      "id": "fdbosses",
+      "name": {
+        "translate": "bingo.list.fdbosses",
+        "fallback": "Qliphoth Awakening"
+      },
+      "value": "+from=fdbosses -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["fdbosses"]
+    },
+    {
+      "id": "thebumblezone",
+      "name": {
+        "translate": "bingo.list.thebumblezone",
+        "fallback": "The Bumblezone"
+      },
+      "value": "+from=the_bumblezone -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["the_bumblezone"]
+    },
+    {
+      "id": "mowziesmobs",
+      "name": {
+        "translate": "bingo.list.mowziesmobs",
+        "fallback": "Mowzie's Mobs"
+      },
+      "value": "+from=mowziesmobs -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["mowziesmobs"]
+    },
+    {
+      "id": "cultofazazel",
+      "name": {
+        "translate": "bingo.list.cultofazazel",
+        "fallback": "Cult of Azazel"
+      },
+      "value": "+from=netherman -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["netherman"]
+    },
+    {
+      "id": "ironsspellbooks",
+      "name": {
+        "translate": "bingo.list.ironsspellbooks",
+        "fallback": "Iron's Spells 'n Spellbooks"
+      },
+      "value": "+from=irons_spellbooks -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["irons_spellbooks"]
+    },
+    {
+      "id": "undergarden",
+      "name": {
+        "translate": "bingo.list.undergarden",
+        "fallback": "The Undergarden"
+      },
+      "value": "+from=undergarden -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["undergarden"]
     }
   ]
 }
