@@ -76,14 +76,6 @@ internal class ResetService(
             tickManager.setFrozen(false)
         }
 
-        log.info("[Reset] Transferring game state")
-        // This is important! Otherwise the bingo persistent state does not get copied into the new world data
-        // (ScopeManager does this on initial setup, but it gets lost when the world is replaced)
-        persistentStateManager.put(
-            type = persistentStates.bingo,
-            value = state,
-        )
-
         log.info("[Reset] Teleporting players back to lobby")
         menuController.suspendPregameSpawn()
         state.changeState(eventBus, GameState.PREGAME) // invokes createInitialCards in ScoredItemCheck
@@ -92,7 +84,13 @@ internal class ResetService(
             playerController.restoreLobbyPlayerAfterReset(player)
         }
 
-        tickManager.setFrozen(false)
+        log.info("[Reset] Transferring game state")
+        // This is important! Otherwise the bingo persistent state does not get copied into the new world data
+        // (ScopeManager does this on initial setup, but it gets lost when the world is replaced)
+        persistentStateManager.put(
+            type = persistentStates.bingo,
+            value = state,
+        )
 
         serverTaskExecutor.executeNextTick {
             tickManager.setFrozen(false)

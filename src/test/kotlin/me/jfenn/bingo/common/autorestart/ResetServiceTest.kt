@@ -92,7 +92,14 @@ class ResetServiceTest {
         assertEquals(1, menuController.spawnCalls)
         assertEquals(0, menuController.prepareCalls)
         assertEquals(1, persistentStateManager.putCalls)
-        assertEquals(state, persistentStateManager.lastValue)
+        assertEquals(GameState.PREGAME, persistentStateManager.lastState)
+        assertEquals(
+            "persistentStatePut:PREGAME",
+            calls.single { it.startsWith("persistentStatePut:") },
+        )
+        assertTrue(
+            calls.indexOfFirst { it.startsWith("emit:") } < calls.indexOfFirst { it.startsWith("persistentStatePut:") },
+        )
         assertEquals(GameState.PREGAME, state.state)
         assertTrue(eventBus.emittedTypes.contains(GameResetEvent))
         assertEquals(emptyList(), playerController.restoreCalls)
@@ -234,7 +241,7 @@ class ResetServiceTest {
         private val calls: MutableList<String>,
     ) : IPersistentStateManager {
         var putCalls = 0
-        var lastValue: Any? = null
+        var lastState: GameState? = null
 
         override fun <T : Any> register(id: String, kType: kotlin.reflect.KType, default: () -> T): IPersistentStateType<T> {
             error("register is not used in this test")
@@ -245,9 +252,10 @@ class ResetServiceTest {
         }
 
         override fun <T : Any> put(type: IPersistentStateType<T>, value: T) {
-            calls += "persistentStatePut"
+            val bingoState = value as BingoState
+            calls += "persistentStatePut:${bingoState.state}"
             putCalls++
-            lastValue = value
+            lastState = bingoState.state
         }
     }
 

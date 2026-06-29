@@ -11,6 +11,8 @@ import me.jfenn.bingo.common.event.model.StateChangedEvent
 import me.jfenn.bingo.common.lobbyWorld
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
+import me.jfenn.bingo.common.state.ResetPersistentStates
+import me.jfenn.bingo.platform.IPersistentStateManager
 import me.jfenn.bingo.platform.event.IEventBus
 import me.jfenn.bingo.platform.event.game.ScopeStarted
 import me.jfenn.bingo.platform.event.game.ScopeStopped
@@ -61,7 +63,12 @@ class ScopeManager(
             scope.commonInit()
 
             // re-run state entry listeners
-            if (state.state == GameState.UNINITIALIZED) {
+            val isBrokenPostgameSave = state.isBrokenPostgameResetSave()
+            if (isBrokenPostgameSave) {
+                log.warn("[ScopeManager] Detected a half-reset POSTGAME save; rebuilding it as a fresh PREGAME lobby.")
+                state.reset()
+                state.changeState(eventBus, GameState.PREGAME)
+            } else if (state.state == GameState.UNINITIALIZED) {
                 state.changeState(eventBus, GameState.PREGAME)
             } else {
                 eventBus.emit(StateChangedEvent, StateChangedEvent(state.state, state.state))
@@ -71,6 +78,13 @@ class ScopeManager(
             if (state.cards.isEmpty()) {
                 log.error("[ScopeManager] There were no bingo cards in the save! Your game might not have shut down correctly, or your save data was corrupted.")
                 scope.get<CardService>().createInitialCards()
+            }
+
+            if (isBrokenPostgameSave) {
+                scope.get<IPersistentStateManager>().put(
+                    type = scope.get<ResetPersistentStates>().bingo,
+                    value = state,
+                )
             }
 
             val api = scope.get<IBingoApi>();
@@ -89,4 +103,12 @@ class ScopeManager(
             scope.close()
         }
     }
+}
+
+internal fun BingoState.isBrokenPostgameResetSave(): Boolean {
+    return isLobbyMode &&
+        state == GameState.POSTGAME &&
+        cards.isEmpty() &&
+        teams.isEmpty() &&
+        players.isEmpty()
 }
