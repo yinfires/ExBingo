@@ -37,6 +37,7 @@ internal class ResetService(
 ) {
     private companion object {
         const val DYNAMIC_WORLD_RECREATE_ON_RESET_PROPERTY = "exbingo.dynamicWorldRecreateOnReset"
+        const val DYNAMIC_WORLD_RECREATE_ON_RESET_DEFAULT = true
     }
 
     fun resetGame() {
@@ -64,15 +65,14 @@ internal class ResetService(
         state.reset()
 
         if (dynamicWorldRecreateOnReset()) {
-            log.warn("[Reset] dynamicWorldRecreateOnReset=true; using legacy live world recreation path")
-            log.info("[Reset] Recreating worlds")
+            log.info("[Reset] Recreating worlds (fresh world per round)")
             tickManager.setFrozen(false)
             serverWorldFactory.recreateWorlds(Random.Default.nextLong()) {
                 menuController.prepareLobbyFiles()
             }
             tickManager.setFrozen(false)
         } else {
-            log.info("[Reset] Using NeoForge safe reset without live world recreation")
+            log.warn("[Reset] dynamicWorldRecreateOnReset=false; skipping live world recreation (previous round's terrain will persist)")
             tickManager.setFrozen(false)
         }
 
@@ -114,7 +114,12 @@ internal class ResetService(
     }
 
     private fun dynamicWorldRecreateOnReset(): Boolean {
-        return java.lang.Boolean.getBoolean(DYNAMIC_WORLD_RECREATE_ON_RESET_PROPERTY)
+        // Default to recreating worlds on reset (so each round starts on a fresh world with no
+        // leftover terrain/builds from the previous game). Can be explicitly disabled by setting
+        // -Dexbingo.dynamicWorldRecreateOnReset=false as an escape hatch if live recreation misbehaves.
+        val raw = System.getProperty(DYNAMIC_WORLD_RECREATE_ON_RESET_PROPERTY)
+            ?: return DYNAMIC_WORLD_RECREATE_ON_RESET_DEFAULT
+        return raw.toBoolean()
     }
 
 }

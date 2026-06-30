@@ -33,7 +33,7 @@ import kotlin.test.assertTrue
 
 class ResetServiceTest {
     @Test
-    fun `safe reset defaults to state reset lobby restore and skips live world recreation`() {
+    fun `reset defaults to live world recreation and prepares lobby files`() {
         val calls = mutableListOf<String>()
         val eventBus = RecordingEventBus(calls)
         val state = BingoState(
@@ -84,13 +84,13 @@ class ResetServiceTest {
             }
         }
 
-        assertFalse(serverWorldFactory.recreateCalled)
+        assertTrue(serverWorldFactory.recreateCalled)
         assertEquals(1, teamService.clearCalls)
         assertEquals(1, scoreboardService.clearCalls)
         assertEquals(1, bossBarService.clearCalls)
         assertEquals(1, menuController.suspendCalls)
         assertEquals(1, menuController.spawnCalls)
-        assertEquals(0, menuController.prepareCalls)
+        assertEquals(1, menuController.prepareCalls)
         assertEquals(1, persistentStateManager.putCalls)
         assertEquals(GameState.PREGAME, persistentStateManager.lastState)
         assertEquals(
@@ -108,7 +108,7 @@ class ResetServiceTest {
     }
 
     @Test
-    fun `legacy reset opt-in still recreates worlds and prepares lobby files`() {
+    fun `reset opt-out skips live world recreation`() {
         val calls = mutableListOf<String>()
         val eventBus = RecordingEventBus(calls)
         val state = BingoState(
@@ -149,7 +149,7 @@ class ResetServiceTest {
         val propertyName = "exbingo.dynamicWorldRecreateOnReset"
         val oldProperty = System.getProperty(propertyName)
         try {
-            System.setProperty(propertyName, "true")
+            System.setProperty(propertyName, "false")
             service.resetGame()
         } finally {
             if (oldProperty == null) {
@@ -159,8 +159,8 @@ class ResetServiceTest {
             }
         }
 
-        assertTrue(serverWorldFactory.recreateCalled)
-        assertEquals(1, menuController.prepareCalls)
+        assertFalse(serverWorldFactory.recreateCalled)
+        assertEquals(0, menuController.prepareCalls)
         assertEquals(1, menuController.spawnCalls)
         assertEquals(1, persistentStateManager.putCalls)
         assertEquals(GameState.PREGAME, state.state)

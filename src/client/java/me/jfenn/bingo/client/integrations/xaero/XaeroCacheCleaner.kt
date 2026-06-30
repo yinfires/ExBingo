@@ -21,12 +21,19 @@ import kotlin.streams.toList
  * client doesn't accumulate a growing pile of per-round caches.
  *
  * Xaero stores data under `<gameDir>/xaero/{minimap,world-map}/<world>/<dimension>/`.
+ * The two modules name dimension folders differently — the world-map uses the bare
+ * id (`bingo$lobby`, `null`, …) while the minimap prefixes each with `dim%`
+ * (`dim%bingo$lobby`, `dim%0`, …). Both schemes are recognised ([isBingoWorld],
+ * [isLobbyDir]); missing the minimap's `dim%` prefix is what previously left
+ * deathpoints (stored as ordinary minimap waypoints under the round's `dim%0`)
+ * uncleaned, so they reappeared next game when Xaero reloaded them from disk.
+ *
  * A bingo world (singleplayer save or LAN session) is identified by containing a
- * `bingo$lobby` dimension folder ([LOBBY_WORLD_ID]). Only such worlds are touched —
+ * lobby dimension folder ([LOBBY_WORLD_ID]). Only such worlds are touched —
  * unrelated servers' maps are never deleted. Within a bingo world, every dimension
  * folder except the lobby belongs to an actual round (e.g. the game's `null`/
- * `dim%0` dimension, which holds both the explored tiles and any waypoints the
- * player placed during the round) and is removed.
+ * `dim%0` dimension, which holds both the explored tiles and any waypoints —
+ * including deathpoints — the player placed during the round) and is removed.
  *
  * The lobby dimension itself is kept, but its per-round `mw$` multiworld folders are
  * pruned to just the newest one ([pruneStaleMultiworlds]): the server sends a fresh
@@ -55,7 +62,12 @@ internal class XaeroCacheCleaner(
     eventBus: IEventBus,
 ) : BingoComponent() {
 
+    // The lobby dimension folder. Xaero's two modules name it differently:
+    //   world-map: "bingo$lobby"
+    //   minimap:   "dim%bingo$lobby"  (minimap prefixes every dimension with "dim%")
+    // We must recognise both, or the minimap side is silently skipped (see [isLobbyDir]).
     private val lobbyDirName = LOBBY_WORLD_ID.toString().replace(':', '$')
+    private val minimapLobbyDirName = "$MINIMAP_DIM_PREFIX$lobbyDirName"
 
     private companion object {
         // Xaero encodes the world display name into its folder name, turning the
@@ -66,6 +78,11 @@ internal class XaeroCacheCleaner(
         // Xaero names each multiworld folder "mw$<id>". The lobby accumulates one per
         // round (one per server-sent world id), so these are what we prune.
         const val MULTIWORLD_PREFIX = "mw\$"
+
+        // Xaero's minimap prefixes every dimension folder with "dim%" (e.g. "dim%0",
+        // "dim%bingo$lobby"); its world-map does not. Recognising this prefix is what
+        // lets cleanup reach the minimap side, where deathpoints are stored.
+        const val MINIMAP_DIM_PREFIX = "dim%"
     }
 
     private val cacheRoots: List<Path>
@@ -170,7 +187,7 @@ internal class XaeroCacheCleaner(
     private fun clearRoundDimensionsOf(worldDir: Path) {
         for (dimDir in worldDir.listChildren()) {
             if (!dimDir.isDirectory()) continue
-            if (dimDir.name == lobbyDirName) {
+            if (isLobbyDir(dimDir)) {
                 pruneStaleMultiworlds(dimDir)
                 continue
             }
@@ -206,7 +223,12 @@ internal class XaeroCacheCleaner(
         worldDir.name.contains(BINGO_WORLD_FOLDER_MARKER) && isBingoWorld(worldDir)
 
     private fun isBingoWorld(worldDir: Path): Boolean =
-        worldDir.resolve(lobbyDirName).isDirectory()
+        worldDir.resolve(lobbyDirName).isDirectory() ||
+                worldDir.resolve(minimapLobbyDirName).isDirectory()
+
+    /** True for the lobby dimension folder in either Xaero module's naming scheme. */
+    private fun isLobbyDir(dimDir: Path): Boolean =
+        dimDir.name == lobbyDirName || dimDir.name == minimapLobbyDirName
 
     private fun Path.listChildren(): List<Path> =
         Files.list(this).use { it.toList() }

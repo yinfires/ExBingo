@@ -48,6 +48,14 @@ class ServerWorldFactory(
     private val log: Logger,
     private val server: MinecraftServer,
 ) : IServerWorldFactory {
+    private companion object {
+        // Per-dimension SavedData files (under <world>/data/) that must be wiped on world recreation so
+        // they don't leak progress into the next round. Matched against every recreated world's data dir.
+        val WORLD_DATA_FILES_TO_RESET = listOf(
+            "book_progressions.dat", // Eternal Starlight gatekeeper permit store (overworld)
+        )
+    }
+
     override val overworld: IServerWorld
         get() = forWorld(server.overworld())
 
@@ -117,6 +125,21 @@ class ServerWorldFactory(
                     .map { world.directory.resolve(it).toFile() }
                     .filter { it.exists() }
                     .onEach { it.deleteRecursively() }
+
+                // Per-dimension SavedData that must NOT carry over into the next round. These live under
+                // <world.directory>/data/. Deleting the file before invokeLoadLevel() makes the fresh
+                // DimensionDataStorage re-create empty state via computeIfAbsent.
+                //   - book_progressions.dat: Eternal Starlight's gatekeeper permit store (keyed by player
+                //     UUID, stored in the OVERWORLD DataStorage). Without this, players who were permitted
+                //     by The Gatekeeper last round can still trade with it in the next round. The per-player
+                //     advancement is already cleared on reset, but this world-level store is separate.
+                WORLD_DATA_FILES_TO_RESET
+                    .map { world.directory.resolve("data").resolve(it).toFile() }
+                    .filter { it.exists() }
+                    .onEach {
+                        log.info("[Reset] Deleting stale world data file {}", it)
+                        it.delete()
+                    }
 
                 tickKeepAlive()
             }
