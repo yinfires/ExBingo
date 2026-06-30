@@ -30,5 +30,14 @@ class ObjectiveFilterPreset(
     companion object {
         fun formatName(textFactory: ITextFactory, name: String): IText =
             textFactory.translatable("bingo.list.$name", name.formatTitle())
+
+        /**
+         * Tier list sources come from file names, which often use underscores
+         * (`eternal_starlight`, `the_bumblezone`). Our translation keys use the
+         * compact form (`eternalstarlight`, `thebumblezone`), so normalize here
+         * before looking up the localized label.
+         */
+        fun formatSourceName(textFactory: ITextFactory, name: String): IText =
+            textFactory.translatable("bingo.list.${name.replace("_", "")}", name.formatTitle())
     }
 }

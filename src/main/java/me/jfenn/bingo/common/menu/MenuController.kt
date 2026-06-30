@@ -90,6 +90,17 @@ internal class MenuController(
     // the lobby is spawned so stale runtime menu/team entities can be discarded safely.
     private var instanceTag = "bingo-${UUID.randomUUID()}"
 
+    // Ticks remaining for the post-spawn stale-entity sweep. In safe-reset mode the previous
+    // round's menu/team entities are autosaved into the lobby world's entities/ data and reload
+    // ASYNC after reset, often a tick or more AFTER the single cleanup pass in performSpawnLobby
+    // has already run (the per-chunk readiness gate can report ready before a cold side-chunk's
+    // entities have drained from the loading inbox). Those late arrivals overlap the freshly
+    // spawned menu, and since their interaction listeners were removed they swallow clicks on that
+    // side (the "left menu dead on first round-end, fine on the second" symptom). A single gated
+    // cleanup can't catch them; sweeping every tick for a window after spawn does, regardless of
+    // which chunk they land in or how late they drain.
+    private var staleSweepTicksRemaining = 0
+
     private companion object {
         val TEAM_PICKER_TICKET: TicketType<ChunkPos> = TicketType.create("bingo-team-picker") { a, b ->
             a.toLong().compareTo(b.toLong())
@@ -98,6 +109,10 @@ internal class MenuController(
         // Cap on how many ticks we wait for persisted lobby entities to drain out of the async
         // loading inbox before spawning anyway. ~5s at 20 tps; well beyond normal load latency.
         const val MAX_ENTITY_READY_WAIT_TICKS = 100
+
+        // ~10s at 20 tps. Comfortably longer than the async entity-load window, after which no
+        // further persisted entities can appear (nothing else loads the lobby chunks).
+        const val STALE_SWEEP_TICKS = 200
     }
 
     private object Cache {
@@ -133,6 +148,7 @@ internal class MenuController(
 
         eventBus.register(TickEvent.Start) {
             menu?.tick()
+            sweepStaleLobbyEntities()
         }
 
         events.onStateChange { (_, to) ->
@@ -314,6 +330,34 @@ internal class MenuController(
             log.error("[MenuController] Lobby spawned with stale bingo entities still present: {}", afterSpawnStats)
         } else {
             log.info("[MenuController] Lobby entity stats after spawn: {}", afterSpawnStats)
+        }
+
+        // Begin the post-spawn stale-entity sweep window: persisted entities from the previous
+        // round may still be draining in from async chunk loading and would otherwise overlap the
+        // freshly spawned menu and swallow clicks. See staleSweepTicksRemaining.
+        staleSweepTicksRemaining = STALE_SWEEP_TICKS
+    }
+
+    /**
+     * Discards any lobby entity carrying a bingo- tag that is NOT the current instanceTag. Runs for
+     * a window of ticks after each spawn to catch persisted entities from a previous lobby instance
+     * that reload asynchronously after the one-shot cleanup in performSpawnLobby has already run.
+     * Their interaction listeners are already gone, so leaving them in place steals clicks from the
+     * real menu buttons they overlap.
+     */
+    private fun sweepStaleLobbyEntities() {
+        if (staleSweepTicksRemaining <= 0) return
+        staleSweepTicksRemaining--
+
+        val lobbyWorld = server.lobbyWorld ?: return
+        if (state.state != GameState.PREGAME) return
+
+        for (entity in lobbyWorld.allEntities) {
+            if (entity is Player) continue
+            val bingoTags = entity.tags.filter { it.startsWith("bingo-") }
+            if (bingoTags.isEmpty() || instanceTag in bingoTags) continue
+            log.info("[MenuController] Sweeping stale lobby entity {} (tags={})", entity.uuid, bingoTags)
+            discardLobbyEntity(entity)
         }
     }
 

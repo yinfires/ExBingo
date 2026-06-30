@@ -103,7 +103,7 @@ class BingoObjectiveManager(
 
                 val desc = listOfNotNull(
                     entry.tier?.let { text.string(it.string).formatted(it.formatting) },
-                    entry.source?.let { ObjectiveFilterPreset.formatName(text, it).formatted(ChatFormatting.BLUE) },
+                    entry.source?.let { ObjectiveFilterPreset.formatSourceName(text, it).formatted(ChatFormatting.BLUE) },
                     entry.tileName?.let { text.literal(it).formatted(ChatFormatting.GRAY) },
                 )
 

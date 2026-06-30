@@ -152,12 +152,13 @@ internal class SpawnService(
             getTeamSpawnpoint(team)
         } ?: world.spawnPos
 
-        // if the player already has the exact block position, don't teleport them again
-        val needsTeleport = player.serverWorld != world || player.blockPos != spawn
-        if (!needsTeleport) return
-
-        // random offset for each player to prevent collision grouping
-        player.teleport(world, spawn.toVector3d().add(Random.nextDouble(), Random.nextDouble(), Random.nextDouble()), player.yaw, player.pitch)
+        // Always write the respawn point first — independent of whether a teleport is needed.
+        // teleportPlayer is called multiple times during startup (LOADING -> COUNTDOWN -> PLAYING),
+        // and on repeated calls the player is usually already at the spawn block (the teleport
+        // offset is fractional, so blockPos still equals spawn), so needsTeleport is false. If
+        // setSpawnPoint sat after the early-return, it would be skipped, leaving the player's
+        // respawnDimension at vanilla's default (overworld) — causing deaths to respawn in the
+        // overworld instead of the chosen spawn dimension.
         player.setSpawnPoint(
             world = world,
             spawn = spawn,
@@ -165,6 +166,13 @@ internal class SpawnService(
             forced = true,
             sendMessage = false,
         )
+
+        // if the player already has the exact block position, don't teleport them again
+        val needsTeleport = player.serverWorld != world || player.blockPos != spawn
+        if (!needsTeleport) return
+
+        // random offset for each player to prevent collision grouping
+        player.teleport(world, spawn.toVector3d().add(Random.nextDouble(), Random.nextDouble(), Random.nextDouble()), player.yaw, player.pitch)
         logPlayerAttachmentAfterTeleport(
             stage = "teleportPlayer",
             player = player,

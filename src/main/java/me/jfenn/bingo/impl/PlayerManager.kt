@@ -16,6 +16,10 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.ai.attributes.DefaultAttributes
+import net.minecraft.world.entity.player.Player
+import net.neoforged.neoforge.registries.NeoForgeRegistries
 import net.minecraft.world.item.*
 import net.minecraft.network.chat.ChatType
 import net.minecraft.network.chat.OutgoingChatMessage
@@ -31,6 +35,7 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.TicketType
@@ -110,6 +115,27 @@ class PlayerHandle(
     override val player: ServerPlayer,
     private val itemStackFactory: IItemStackFactory? = null,
 ) : IPlayerHandle, LivingEntityImpl(player) {
+
+    private companion object {
+        // Data attachments holding permanent per-player progression that must be wiped when a
+        // game resets, so beating something one game doesn't grant it for free the next. Keyed
+        // by their registered id. Structural attachments (e.g. Curios' inventory) are
+        // deliberately excluded — clearing those breaks the owning mod.
+        //
+        // Eternal Starlight (`eternal_starlight`): the Gatekeeper trade permit is gated mainly
+        // by the `challenge_gatekeeper` advancement (cleared separately via clearAdvancements),
+        // but these attachments back other per-player progression and currencies.
+        val RESET_DATA_ATTACHMENT_IDS: List<ResourceLocation> = listOf(
+            "eternal_starlight:gatekeeper_challenge_count",
+            "eternal_starlight:owned_crests",
+            "eternal_starlight:crests",
+            "eternal_starlight:old_active_crests",
+            "eternal_starlight:boarwarf_credit",
+            "eternal_starlight:obtained_blossom_of_stars",
+            "eternal_starlight:received_guidebook",
+            "eternal_starlight:guidebook_listening_namespaces",
+        ).map { ResourceLocation.parse(it) }
+    }
 
     private fun getItemStackFactory() = itemStackFactory
         ?: BingoKoin.getScope(player.server)!!.get<IItemStackFactory>()
@@ -454,6 +480,58 @@ class PlayerHandle(
         // This flushes server-side inventory edits (e.g. items cleared on reset) to the client.
         player.inventoryMenu.sendAllDataToRemote()
         player.containerMenu.sendAllDataToRemote()
+    }
+
+    override fun resetPlayerData() {
+        // Reset attributes to a clean slate. For each attribute the player has an instance for,
+        // drop all modifiers, then restore the base value to the PLAYER entity's own default
+        // (from DefaultAttributes) — NOT Attribute.getDefaultValue(), which is the attribute's
+        // generic fallback (e.g. movement_speed defaults to 0.7 there) and would leave the
+        // player with absurd stats. Attributes the player default doesn't define (added purely
+        // by a mod) just get their modifiers stripped.
+        val attributes = player.attributes
+        val playerDefaults = DefaultAttributes.getSupplier(EntityType.PLAYER)
+        for (holder in BuiltInRegistries.ATTRIBUTE.holders()) {
+            val instance = attributes.getInstance(holder) ?: continue
+            instance.removeModifiers()
+            if (playerDefaults.hasAttribute(holder)) {
+                instance.baseValue = playerDefaults.getBaseValue(holder)
+            }
+        }
+
+        // Clear modded entries from the player's persistent data, but keep the vanilla
+        // "PlayerPersisted" container (used by the keep-on-death mechanic and relied on by
+        // vanilla/NeoForge). Operator status and permission level live outside this tag, so
+        // they are unaffected.
+        val persistentData = player.persistentData
+        val keptKeys = persistentData.allKeys.filter { it != Player.PERSISTED_NBT_TAG }
+        for (key in keptKeys) {
+            persistentData.remove(key)
+        }
+
+        // Clear specific modded data attachments that store permanent per-player progression,
+        // so finishing a game doesn't carry that progress into the next one. This is targeted
+        // (by attachment id) rather than wiping ALL attachments: a blanket clear also removes
+        // structural attachments other mods rely on (e.g. Curios' accessory inventory), which
+        // breaks them. Each removal is isolated so one failure can't skip the rest.
+        //
+        // NOTE: when adding per-mod Bingo board support, audit that mod for attachment-backed
+        // progression (boss permits, currencies, unlock flags) and add its ids here.
+        for (id in RESET_DATA_ATTACHMENT_IDS) {
+            try {
+                val type = NeoForgeRegistries.ATTACHMENT_TYPES.get(id) ?: continue
+                if (!player.hasData(type)) continue
+                player.removeData(type)
+                player.syncData(type)
+            } catch (e: Throwable) {
+                // A single mod's attachment misbehaving must not abort the whole reset.
+            }
+        }
+
+        // Clamp current health into the (possibly lowered) max after resetting attributes.
+        if (player.health > player.maxHealth) {
+            player.health = player.maxHealth
+        }
     }
 
     override fun resyncClientState(syncPosition: Boolean) {

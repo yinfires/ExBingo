@@ -28,6 +28,12 @@ import kotlin.streams.toList
  * `dim%0` dimension, which holds both the explored tiles and any waypoints the
  * player placed during the round) and is removed.
  *
+ * The lobby dimension itself is kept, but its per-round `mw$` multiworld folders are
+ * pruned to just the newest one ([pruneStaleMultiworlds]): the server sends a fresh
+ * Xaero world id on every return-to-lobby, which Xaero materializes as a new lobby
+ * multiworld that it never cleans up — the main reason a persistent server's Xaero
+ * cache grows without bound across games.
+ *
  * Timing matters: Xaero holds a `.lock` on the active dimension while connected,
  * so cleanup runs on disconnect (when the bingo world's files are released) and on
  * client start (to mop up anything a previous session left locked). Deletion is
@@ -56,6 +62,10 @@ internal class XaeroCacheCleaner(
         // "[BINGO]" prefix into "%lb%BINGO%rb%". Matching this marker identifies the
         // mod's ephemeral singleplayer worlds regardless of locale/world name suffix.
         const val BINGO_WORLD_FOLDER_MARKER = "%lb%BINGO%rb%"
+
+        // Xaero names each multiworld folder "mw$<id>". The lobby accumulates one per
+        // round (one per server-sent world id), so these are what we prune.
+        const val MULTIWORLD_PREFIX = "mw\$"
     }
 
     private val cacheRoots: List<Path>
@@ -139,12 +149,51 @@ internal class XaeroCacheCleaner(
         }
     }
 
-    /** Delete every dimension folder of a bingo world except its lobby. */
+    /**
+     * Delete every round dimension of a bingo world (keeping the lobby), and within
+     * the lobby prune all but its newest `mw$` multiworld.
+     *
+     * On a persistent server the lobby dimension is never removed, but it still grows
+     * without bound: each game's return-to-lobby sends every client a fresh random
+     * Xaero world id (see XaeroMapApi), which Xaero binds to a new server-based
+     * `mw$<id>` multiworld folder under the lobby and never cleans up. Singleplayer
+     * "looks" fine only because the whole save (and its Xaero cache) is deleted on
+     * exit; a dedicated server keeps the lobby folder, so the `mw$` folders pile up
+     * indefinitely (observed: 30+ on a long-running test server).
+     *
+     * The lobby is logically one fixed place that only ever needs one map, so we keep
+     * just the most-recently-modified `mw$` (this round's) and drop the rest. Using
+     * mtime avoids any race with which multiworld Xaero currently considers "active":
+     * this runs on disconnect/startup when Xaero has released its locks, so it is a
+     * pure on-disk prune with no dependency on live Xaero state.
+     */
     private fun clearRoundDimensionsOf(worldDir: Path) {
         for (dimDir in worldDir.listChildren()) {
             if (!dimDir.isDirectory()) continue
-            if (dimDir.name == lobbyDirName) continue
+            if (dimDir.name == lobbyDirName) {
+                pruneStaleMultiworlds(dimDir)
+                continue
+            }
             deleteRecursivelyBestEffort(dimDir)
+        }
+    }
+
+    /**
+     * Within a dimension folder, delete every `mw$` multiworld except the newest one
+     * (by last-modified time), so the lobby's per-round multiworlds don't accumulate.
+     * Non-`mw$` entries (e.g. `dimension_config.txt`, `caves`) are left untouched.
+     */
+    private fun pruneStaleMultiworlds(dimDir: Path) {
+        val multiworlds = dimDir.listChildren()
+            .filter { it.isDirectory() && it.name.startsWith(MULTIWORLD_PREFIX) }
+        if (multiworlds.size <= 1) return
+
+        val newest = multiworlds.maxByOrNull {
+            runCatching { Files.getLastModifiedTime(it).toMillis() }.getOrDefault(Long.MIN_VALUE)
+        }
+        for (mw in multiworlds) {
+            if (mw == newest) continue
+            deleteRecursivelyBestEffort(mw)
         }
     }
 

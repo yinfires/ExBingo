@@ -115,6 +115,20 @@ interface IPlayerHandle : ILivingEntity {
     fun syncInventory()
 
     /**
+     * Reset modded/permanent player data left over from a game, so that finishing a Bingo
+     * round returns the player to a clean state:
+     * - removes every modifier from every attribute (max health, attack damage, movement
+     *   speed, etc.) and resets each attribute's base value to its default, undoing permanent
+     *   buffs applied by mods
+     * - clears modded entries from the player's persistent data, preserving the vanilla
+     *   `PlayerPersisted` ("keep on death") container
+     *
+     * Does NOT touch operator status, permission level, gamemode, or NeoForge data
+     * attachments — those are managed elsewhere or intentionally retained.
+     */
+    fun resetPlayerData()
+
+    /**
      * Re-assert the player's client-visible state (gamemode, abilities, and the player entity's
      * tracked data such as the invisibility flag) by forcing fresh packets to the client. Callers can
      * disable the optional position sync only when an authoritative teleport packet has already been

@@ -141,7 +141,14 @@ internal class CardViewService(
 
             // If the map view has no tiles, update it first!
             // (this is necessary to populate the display info)
-            if (map.view?.tiles?.isEmpty() != true) {
+            //
+            // Note: this condition was previously inverted (`isEmpty() != true`), which meant
+            // updateCard() was skipped exactly when the view was empty/null — so a player whose
+            // channel registered before the card's tiles were first generated (e.g. just after
+            // entering PLAYING) received an empty CardTilesPacket. updateCard() only sends
+            // *changed* tiles afterwards, so the client stayed blank until a tile changed (was
+            // achieved) and got resent — which is the "概率性整张棋盘不显示，只有完成的格子才显示" bug.
+            if (map.view?.tiles.isNullOrEmpty()) {
                 updateCard(team)
             }
 

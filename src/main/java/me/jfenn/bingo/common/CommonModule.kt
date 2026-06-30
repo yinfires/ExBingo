@@ -90,6 +90,8 @@ import me.jfenn.bingo.integrations.placeholders.PlaceholdersIntegration
 import me.jfenn.bingo.integrations.vanish.DummyVanish
 import me.jfenn.bingo.integrations.vanish.IVanishApi
 import me.jfenn.bingo.integrations.vanish.IVanishApiFactory
+import me.jfenn.bingo.integrations.curios.CuriosApi
+import me.jfenn.bingo.integrations.curios.ICuriosApi
 import me.jfenn.bingo.integrations.voice.DummyVoiceApi
 import me.jfenn.bingo.integrations.voice.IVoiceApi
 import me.jfenn.bingo.integrations.voice.IVoiceApiFactory
@@ -371,6 +373,8 @@ val commonModule = module {
                 .firstNotNullOfOrNull { it.create(this) }
                 ?: DummyVanish
         }
+
+        scoped<ICuriosApi> { CuriosApi(get()) }
 
         scoped { get<IChunkyApiFactory>().create(this) }
         scopedOf(::ChunkyController)

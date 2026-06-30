@@ -12,8 +12,10 @@ import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.team.TeamService
 import me.jfenn.bingo.integrations.vanish.IVanishApi
+import me.jfenn.bingo.integrations.curios.ICuriosApi
 import me.jfenn.bingo.platform.*
 import me.jfenn.bingo.platform.event.IEventBus
+import me.jfenn.bingo.platform.item.IItemStack
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.GameRules
 import org.slf4j.Logger
@@ -46,6 +48,7 @@ internal class PlayerController(
     private val advancementManager: IAdvancementManager,
     private val recipeManager: IRecipeManager,
     private val vanishApi: IVanishApi,
+    private val curiosApi: ICuriosApi,
     private val playerManager: IPlayerManager,
     private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
     private val serverWorldFactory: IServerWorldFactory,
@@ -182,11 +185,28 @@ internal class PlayerController(
             return
         }
 
+        // Reset attributes and modded persistent data so permanent buffs/data applied by mods
+        // during the game don't carry over into the lobby (and the next game). Operator status,
+        // permission level, and the vanilla keep-on-death data are preserved. Done before
+        // resetPlayerHealth so health/air are refilled against the restored (default) maximums.
+        player.resetPlayerData()
+
+        // Revoke all advancements. The respawn path already does this, but the reset-to-lobby
+        // path did not — so mod progression gated on advancements survived a game. For example
+        // Eternal Starlight's Gatekeeper checks the `eternal_starlight:challenge_gatekeeper`
+        // advancement to decide whether a player may trade; without clearing it, a player who
+        // beat the challenge last game could trade immediately in the next one.
+        advancementManager.clearAdvancements(player.player)
+
         resetPlayerHealth(player)
 
         player.allHeldStacks().forEach { stack ->
             stack.count = 0
         }
+
+        // Also clear modded accessory slots (Curios), which allHeldStacks() does not cover.
+        // This is the reset-to-lobby path, so nothing is preserved.
+        curiosApi.clearCurios(player.player) { false }
 
         spawnService.forceTeleportToLobby(player)
 
@@ -248,16 +268,21 @@ internal class PlayerController(
         // Clear all items, unless the player should keep them (bingo card maps)
         val team = teamService.getPlayerTeam(player)
         val isViewingCard = cardViewService.isViewingCard(player, team)
-        player.allHeldStacks()
-            .filterNot { stack ->
-                isViewingCard && when (team) {
-                    null -> mapItemService.isPreviewMapItem(stack)
-                    else -> mapItemService.isMapTeamItem(stack, team)
-                }
+        val keepStack: (IItemStack) -> Boolean = { stack ->
+            isViewingCard && when (team) {
+                null -> mapItemService.isPreviewMapItem(stack)
+                else -> mapItemService.isMapTeamItem(stack, team)
             }
+        }
+        player.allHeldStacks()
+            .filterNot(keepStack)
             .forEach { stack ->
                 stack.count = 0
             }
+
+        // Also clear modded accessory slots (Curios), applying the same map-item
+        // preservation as the vanilla inventory above.
+        curiosApi.clearCurios(player.player, keepStack)
 
         // unlock all crafting recipes, if set
         if (state.state == GameState.PLAYING) {
@@ -360,6 +385,17 @@ internal class PlayerController(
                 if (state.isLobbyMode) {
                     updateGameMode(player, forceReset = forceReset)
                 }
+            }
+
+            // Hand out the player spawn kit when the game starts. Entering PLAYING from
+            // LOADING/COUNTDOWN suppresses the respawn (to avoid wiping inventories), so the
+            // spawn-kit handout in respawnPlayer never fires for players who were present at
+            // the start — only late joiners (who respawn from DEFAULT state) would get it.
+            // Give it here explicitly instead. Skip when resuming from POSTGAME (Keep Playing),
+            // as GameResumeService has already restored each player's saved inventory.
+            if (state.isLobbyMode && prevState != GameState.POSTGAME) {
+                val players = playerManager.getPlayers().filter { teamService.isPlaying(it) }
+                if (players.isNotEmpty()) spawnService.giveSpawnEquipment(players)
             }
         }
 
