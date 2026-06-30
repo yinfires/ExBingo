@@ -259,7 +259,16 @@ internal class MenuController(
     private fun lobbyEntityChunks(lobbyWorld: ServerLevel): Set<Pair<Int, Int>> {
         val chunks = mutableSetOf<Pair<Int, Int>>()
         getMenuPosition(lobbyWorld)?.getTranslation(Vector3d())?.let { pos ->
-            chunks += Math.floorDiv(pos.x.toInt(), 16) to Math.floorDiv(pos.z.toInt(), 16)
+            // The menu spans ~11 blocks horizontally (local x -5.5..5.5) and is rotated by yaw, so
+            // it can cross into the chunks neighbouring its centre. Waiting on (and cleaning up)
+            // only the centre chunk leaves the side columns' persisted entities un-reconciled: they
+            // load a tick later, overlap the freshly spawned menu, and their stale INTERACTION
+            // entities swallow clicks on that side. Cover the centre's 3x3 chunk neighbourhood.
+            val centerX = Math.floorDiv(pos.x.toInt(), 16)
+            val centerZ = Math.floorDiv(pos.z.toInt(), 16)
+            for (dx in -1..1) for (dz in -1..1) {
+                chunks += (centerX + dx) to (centerZ + dz)
+            }
         }
         for (blockPos in getTeamPositions(lobbyWorld).values) {
             chunks += Math.floorDiv(blockPos.x, 16) to Math.floorDiv(blockPos.z, 16)

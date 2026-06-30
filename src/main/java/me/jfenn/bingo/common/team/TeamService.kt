@@ -147,6 +147,16 @@ internal class TeamService(
     }
 
     override fun clearTeams() {
+        // Release any chunk tickets held for team spawnpoints before dropping the team objects.
+        // Each team force-loads its spawn chunk via SpawnService.onSpawnpointUpdated; if we clear
+        // the teams without closing these handles, the game-world chunks stay force-loaded forever
+        // and the world can never unload. With several players on one team this compounds across
+        // rounds and the world fails to load/unload on reset.
+        for (team in state.teams.values) {
+            team.spawnpointTicket?.close()
+            team.spawnpointTicket = null
+            team.spawnpointFuture = null
+        }
         for (team in data.teamPresets.keys + state.teams.keys) {
             teamManager.deleteTeam(team.id)
         }
