@@ -27,6 +27,14 @@ internal class ClientCardManager(
     }
 
     fun newCard(view: CardView, scale: Float = config.client.cardScale): ClientCardBase {
+        if (!drawServiceFactory.isBufferSupported) {
+            return ClientCardBase(
+                framebuffer = NoopFramebuffer,
+                guiFramebuffer = NoopFramebuffer,
+                view = view,
+            )
+        }
+
         val (width, height) = getCardSize(scale)
         val framebuffer = drawServiceFactory.newBuffer(width, height)
             .also { it.register() }
@@ -88,4 +96,14 @@ internal class ClientCardManager(
         }
     }
 
+}
+
+private object NoopFramebuffer : me.jfenn.bingo.client.platform.renderer.IFramebuffer {
+    override val width: Int = 0
+    override val height: Int = 0
+    override fun register() = Unit
+    override fun resize(width: Int, height: Int) = Unit
+    override fun write(callback: (me.jfenn.bingo.client.platform.renderer.IDrawService) -> Unit) = Unit
+    override fun draw(service: me.jfenn.bingo.client.platform.renderer.IDrawService, width: Int, height: Int) = Unit
+    override fun close() = Unit
 }

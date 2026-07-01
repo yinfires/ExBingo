@@ -20,6 +20,7 @@ import me.jfenn.bingo.client.common.state.BingoHudState
 import me.jfenn.bingo.client.common.stats.ClientStatsSyncController
 import me.jfenn.bingo.client.common.world.BingoWorldManager
 import me.jfenn.bingo.client.integrations.JeiIntegration
+import me.jfenn.bingo.client.integrations.CompassHudCompat
 import me.jfenn.bingo.client.integrations.SimpleVoiceChatHudCompat
 import me.jfenn.bingo.client.integrations.YetAnotherConfigLibIntegration
 import me.jfenn.bingo.client.integrations.jei.IJeiApi
@@ -56,6 +57,7 @@ val commonClientModule = module {
     singleOf(::ClientStatsSyncController) withOptions { createdAtStart() }
 
     singleOf(::BingoWorldManager) withOptions { createdAtStart() }
+    singleOf(::CompassHudCompat) withOptions { createdAtStart() }
     singleOf(::SimpleVoiceChatHudCompat) withOptions { createdAtStart() }
 
     singleOf(::XaeroCacheCleaner) withOptions { createdAtStart() }

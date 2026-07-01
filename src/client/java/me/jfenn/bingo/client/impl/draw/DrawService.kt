@@ -13,6 +13,7 @@ import com.mojang.blaze3d.pipeline.TextureTarget
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.renderer.RenderBuffers
 import net.minecraft.client.renderer.RenderType
+import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.item.ItemStack
 import net.minecraft.resources.ResourceLocation
 import org.joml.Vector2i
@@ -132,6 +133,8 @@ class DrawService(
     override fun drawDynamicTexture(texture: INativeImage, x: Int, y: Int, width: Int, height: Int) {
         require(texture is NativeImageImpl)
         context.blit(texture.textureId, x, y, 0, 0f, 0f, width, height, texture.width, texture.height)
+        // Sodium expects the terrain atlas to be rebound before the next world render pass.
+        RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS)
     }
 
     override fun drawGuiTexture(

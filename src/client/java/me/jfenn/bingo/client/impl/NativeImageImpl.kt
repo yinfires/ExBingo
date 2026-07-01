@@ -27,6 +27,8 @@ class NativeImageImpl(
     override val width: Int,
     override val height: Int,
 ) : INativeImage {
+    private val textureManager get() = Minecraft.getInstance().textureManager
+
     override fun setPixel(x: Int, y: Int, color: Int) {
         val (r, g, b, a) = Color.fromInt(color)
         val bgrInt = rgba(b, g, r, a)
@@ -38,6 +40,6 @@ class NativeImageImpl(
     }
 
     override fun close() {
-        texture.close()
+        textureManager.release(textureId)
     }
 }

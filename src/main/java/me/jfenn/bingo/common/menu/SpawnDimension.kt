@@ -1,6 +1,6 @@
 package me.jfenn.bingo.common.menu
 
-import me.jfenn.bingo.common.LOBBY_WORLD_ID
+import me.jfenn.bingo.common.options.listSelectableSpawnDimensions
 import me.jfenn.bingo.common.options.OptionsService
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.utils.formatTitle
@@ -18,10 +18,7 @@ internal fun MenuComponent.registerDimensionMenu(
     serverWorldFactory: IServerWorldFactory = koinScope.get(),
     optionsService: OptionsService = koinScope.get(),
 ) {
-    val dimensions = serverWorldFactory.listWorlds()
-        .map { it.identifier }
-        .filter { it != LOBBY_WORLD_ID.toString() }
-        .sorted()
+    val dimensions = serverWorldFactory.listSelectableSpawnDimensions()
 
     var dimension by state.options::spawnDimension
     val indexProp = DelegatedProperty(

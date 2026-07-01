@@ -3,6 +3,7 @@ package me.jfenn.bingo.common.spawn
 import me.jfenn.bingo.common.NBT_BINGO_IGNORE
 import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.options.BingoOptions
+import me.jfenn.bingo.common.options.coerceSpawnDimension
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.team.BingoTeam
 import me.jfenn.bingo.platform.block.BlockPosition
@@ -22,9 +23,15 @@ internal class ChestService(
     private val config: BingoConfig,
     private val state: BingoState,
     private val spawnKitService: SpawnKitService,
+    private val serverWorldFactory: me.jfenn.bingo.platform.IServerWorldFactory,
 ) {
 
     private fun getSpawnDimension(): ServerLevel {
+        val spawnDimension = serverWorldFactory.coerceSpawnDimension(options.spawnDimension)
+        if (spawnDimension != options.spawnDimension) {
+            log.warn("[ChestService] Spawn dimension '{}' is not selectable; falling back to '{}'", options.spawnDimension, spawnDimension)
+            options.spawnDimension = spawnDimension
+        }
         return server.allLevels.find {
             it.dimension().location().toString() == options.spawnDimension
         } ?: run {

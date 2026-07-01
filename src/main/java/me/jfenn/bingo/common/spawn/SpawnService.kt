@@ -4,6 +4,7 @@ import me.jfenn.bingo.common.LOBBY_WORLD_IDENTIFIER
 import me.jfenn.bingo.common.NBT_BINGO_IGNORE
 import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.options.BingoOptions
+import me.jfenn.bingo.common.options.coerceSpawnDimension
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.team.BingoTeam
 import me.jfenn.bingo.common.team.TeamService
@@ -35,6 +36,11 @@ internal class SpawnService(
 ) {
 
     fun getSpawnDimension(): IServerWorld {
+        val spawnDimension = serverWorldFactory.coerceSpawnDimension(options.spawnDimension)
+        if (spawnDimension != options.spawnDimension) {
+            log.warn("[SpawnService] Spawn dimension '{}' is not selectable; falling back to '{}'", options.spawnDimension, spawnDimension)
+            options.spawnDimension = spawnDimension
+        }
         val worlds = serverWorldFactory.listWorlds()
         return worlds.find {
             it.identifier == options.spawnDimension

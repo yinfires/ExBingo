@@ -18,6 +18,7 @@ import me.jfenn.bingo.common.utils.minutes
 import me.jfenn.bingo.generated.StringKey
 import me.jfenn.bingo.platform.IPlayerHandle
 import me.jfenn.bingo.platform.IPlayerManager
+import me.jfenn.bingo.platform.IServerWorldFactory
 import me.jfenn.bingo.platform.commands.IExecutionContext
 import me.jfenn.bingo.platform.text.IText
 import me.jfenn.bingo.platform.text.ITextFactory
@@ -45,6 +46,7 @@ internal class OptionsService(
     private val gameRuleController: GameRuleController,
     private val teamService: TeamService,
     private val playerManager: IPlayerManager,
+    private val serverWorldFactory: IServerWorldFactory,
     private val text: TextProvider,
     private val textFactory: ITextFactory,
 ) {
@@ -337,8 +339,9 @@ internal class OptionsService(
     }
 
     fun setSpawnDimension(ctx: Context, dimension: String) {
-        options.spawnDimension = dimension
-        val label = Component.literal(dimension.substringAfterLast(':').formatTitle())
+        val coercedDimension = serverWorldFactory.coerceSpawnDimension(dimension)
+        options.spawnDimension = coercedDimension
+        val label = Component.literal(coercedDimension.substringAfterLast(':').formatTitle())
         ctx.sendFeedback(text.string(StringKey.OptionsNotifyChanged, StringKey.OptionsSpawnDimension, label))
     }
 

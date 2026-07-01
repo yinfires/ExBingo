@@ -31,10 +31,31 @@ internal class BingoCardImageController(
         log.info("[BingoCardImageController] Loading card image ${image.id}")
         val png = ByteArrayInputStream(image.image).use {
             ImageIO.read(it)
+        } ?: run {
+            log.warn("[BingoCardImageController] Failed to decode card image {}", image.id)
+            return
         }
 
-        val nativeImage = hudState.images.getOrPut(image.id) {
-            nativeImageFactory.create(png.width, png.height)
+        val existingImage = hudState.images[image.id]
+        val nativeImage = if (existingImage != null &&
+            (existingImage.width != png.width || existingImage.height != png.height)
+        ) {
+            log.info(
+                "[BingoCardImageController] Recreating card image {} due to size change ({}x{} -> {}x{})",
+                image.id,
+                existingImage.width,
+                existingImage.height,
+                png.width,
+                png.height,
+            )
+            existingImage.close()
+            nativeImageFactory.create(png.width, png.height).also {
+                hudState.images[image.id] = it
+            }
+        } else {
+            hudState.images.getOrPut(image.id) {
+                nativeImageFactory.create(png.width, png.height)
+            }
         }
 
         for (x in 0 until png.width) for (y in 0 until png.height) {
@@ -42,6 +63,7 @@ internal class BingoCardImageController(
         }
 
         nativeImage.upload()
+        png.flush()
     }
 
     init {

@@ -231,9 +231,7 @@ class BingoOptionsCommands(
                         name = "dimension",
                         suggestions = {
                             scope.get<IServerWorldFactory>()
-                                .listWorlds()
-                                .map { it.identifier }
-                                .minus(LOBBY_WORLD_ID.toString())
+                                .listSelectableSpawnDimensions()
                         },
                         greedy = true,
                     ) { dimensionArg ->
@@ -241,8 +239,8 @@ class BingoOptionsCommands(
                             val dimension = getArgument(dimensionArg)
 
                             scope.get<IServerWorldFactory>()
-                                .listWorlds()
-                                .find { it.identifier == dimension }
+                                .listSelectableSpawnDimensions()
+                                .find { it == dimension }
                                 ?: error("Dimension '$dimension' does not exist!")
 
                             scope.get<OptionsService>().setSpawnDimension(optionsContext, dimension)

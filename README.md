@@ -6,6 +6,8 @@ ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-b
 
 本模组保留原模组的主要玩法、资源和数据结构，并为更多的模组添加兼容。
 
+在移植过程中，ExBingo 对原模组进行了大量代码重写，因此部分功能和表现会与原模组存在差别。
+
 ## 联动与兼容
 
 **模组联动**
@@ -69,6 +71,8 @@ ExBingo 是 Yet Another Bingo 的派生版本，使用 `LGPL-3.0-only` 许可证
 ExBingo is a NeoForge 1.21.1 port of [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-bingo), providing a multiplayer Bingo item-hunt game mode.
 
 This mod keeps the upstream mod's main gameplay, resources, and data layout, and add compatibility for more mods.
+
+During the port, ExBingo rewrote a large portion of the upstream mod's code, so some features and behavior differ from the original mod.
 
 ## Integrations
 
