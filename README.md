@@ -1,5 +1,8 @@
 # ExBingo
 
+<details>
+<summary>中文介绍</summary>
+
 ## 简介
 
 ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-bingo) 的 NeoForge 1.21.1 移植版本，提供多人 Bingo 物品收集玩法。
@@ -15,17 +18,26 @@ ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-b
 - JEI物品管理器：从宾果卡目标打开物品配方界面。
 - 简单的语音聊天（Simple Voice Chat）：按队伍管理语音分组。
 - Xaero 的小地图 / 世界地图：对局结束返回大厅时，自动清理本局已探索的地图缓存与路径点。
-- 农夫乐事（Farmer's Delight）：提供专属棋盘与详细难度分级。
-- 暮色森林（Twilight Forest）：提供专属棋盘与详细难度分级。
-- 灾变（L_Ender's Cataclysm）：提供专属棋盘与详细难度分级。
-- 冰火传说（Ice and Fire）：提供专属棋盘与详细难度分级。
-- 永恒星光（Eternal Starlight）：提供专属棋盘与详细难度分级。
-- 逆卡巴拉：觉醒（Qliphoth Awakening）：提供专属棋盘与详细难度分级。
-- 蜜蜂领域（The Bumblezone）：提供专属棋盘与详细难度分级。
-- Mowzie 的生物（Mowzie's Mobs）：提供专属棋盘与详细难度分级。
-- 阿撒泻勒邪教（Cult of Azazel）：提供专属棋盘与详细难度分级。
-- Iron 的法术与魔法书（Iron's Spells 'n Spellbooks）：提供专属棋盘与详细难度分级。
-- 深暗之园（The Undergarden）：提供专属棋盘与详细难度分级。
+
+
+<details>
+<summary>提供专属棋盘与详细难度分级</summary>
+
+- 农夫乐事（Farmer's Delight）
+- 暮色森林（Twilight Forest）
+- 灾变（L_Ender's Cataclysm）
+- 冰火传说（Ice and Fire）
+- 永恒星光（Eternal Starlight）
+- 逆卡巴拉：觉醒（Qliphoth Awakening）
+- 蜜蜂领域（The Bumblezone）
+- Mowzie 的生物（Mowzie's Mobs）
+- 阿撒泻勒邪教（Cult of Azazel）
+- Iron 的法术与魔法书（Iron's Spells 'n Spellbooks）
+- 深暗之园（The Undergarden）
+
+</details>
+
+
 
 **棋盘内容兼容**
 
@@ -62,9 +74,8 @@ ExBingo 默认就能识别其他模组的物品与进度，并按以下规则处
 
 ExBingo 是 Yet Another Bingo 的派生版本，使用 `LGPL-3.0-only` 许可证。许可证文本见 [LICENSE](LICENSE) 和 [COPYING](COPYING)，来源与鸣谢见 [NOTICE](NOTICE)。
 
----
+</details>
 
-# ExBingo
 
 ## Introduction
 
@@ -81,17 +92,24 @@ During the port, ExBingo rewrote a large portion of the upstream mod's code, so 
 - JEI: opens item recipe views from bingo card targets.
 - Simple Voice Chat: manages voice groups by team.
 - Xaero's Minimap / World Map: on returning to the lobby after a round, the round's explored map cache and waypoints are cleared automatically.
-- Farmer's Delight: provides a dedicated board and detailed difficulty tiers.
-- Twilight Forest: provides a dedicated board and detailed difficulty tiers.
-- L_Ender's Cataclysm: provides a dedicated board and detailed difficulty tiers.
-- Ice and Fire: provides a dedicated board and detailed difficulty tiers.
-- Eternal Starlight: provides a dedicated board and detailed difficulty tiers.
-- Qliphoth Awakening: provides a dedicated board and detailed difficulty tiers.
-- The Bumblezone: provides a dedicated board and detailed difficulty tiers.
-- Mowzie's Mobs: provides a dedicated board and detailed difficulty tiers.
-- Cult of Azazel: provides a dedicated board and detailed difficulty tiers.
-- Iron's Spells 'n Spellbooks: provides a dedicated board and detailed difficulty tiers.
-- The Undergarden: provides a dedicated board and detailed difficulty tiers.
+<details>
+<summary>provides a dedicated board and detailed difficulty tiers</summary>
+
+- Farmer's Delight
+- Twilight Forest
+- L_Ender's Cataclysm
+- Ice and Fire
+- Eternal Starlight
+- Qliphoth Awakening
+- The Bumblezone
+- Mowzie's Mobs
+- Cult of Azazel
+- Iron's Spells 'n Spellbooks
+- The Undergarden
+
+
+</details>
+
 
 **Card content compatibility**
 
