@@ -5,6 +5,7 @@ out/
 tmp/
 *.iml
 *.log
+.idea/
 
 # Local agent notes and crash-debugging docs
 AGENTS.md
@@ -14,4 +15,5 @@ reference/
 memory/
 logs/
 tools/
-.idea/
+.claude/
+.codegraph/
