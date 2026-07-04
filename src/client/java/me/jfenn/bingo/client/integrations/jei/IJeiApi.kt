@@ -4,4 +4,6 @@ import net.minecraft.world.item.ItemStack
 
 interface IJeiApi {
     fun openItemRecipe(stack: ItemStack): Boolean
+    fun openItemUses(stack: ItemStack): Boolean = false
+    fun handleHoveredStackKey(keyCode: Int, scanCode: Int, stack: ItemStack): Boolean = false
 }

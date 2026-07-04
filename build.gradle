@@ -264,6 +264,12 @@ tasks.jar.configure {
     from(tasks.named('jarJar').flatMap { it.outputDirectory })
 }
 
+tasks.register('packageJar') {
+    group = 'build'
+    description = 'Builds the distributable mod jar without running tests.'
+    dependsOn(tasks.named('jar'))
+}
+
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     dependsOn(tasks.exbingoLangFiles)
     dependsOn(tasks.exbingoConstants)

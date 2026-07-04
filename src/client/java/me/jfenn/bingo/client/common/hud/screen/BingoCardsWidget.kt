@@ -8,7 +8,9 @@ import me.jfenn.bingo.client.common.utils.Interpolate
 import me.jfenn.bingo.client.platform.renderer.IDrawService
 import me.jfenn.bingo.client.platform.screen.IDrawable
 import me.jfenn.bingo.common.map.CardTile
+import me.jfenn.bingo.common.map.CardTileAction
 import me.jfenn.bingo.common.team.BingoTeamKey
+import net.minecraft.world.item.ItemStack
 import org.koin.core.Koin
 import java.time.Duration
 import kotlin.math.absoluteValue
@@ -31,7 +33,7 @@ internal class BingoCardsWidget(
     var views: Collection<ClientCardBase> = emptyList(),
     var winner: BingoTeamKey? = null,
 
-    val onTileClick: (CardTile) -> Boolean,
+    val onTileClick: (CardTile, button: Int) -> Boolean,
     val onViewClick: ((ClientCard) -> Boolean)?,
 
     private val renderer: ClientCardRenderer = koin.get(),
@@ -129,6 +131,36 @@ internal class BingoCardsWidget(
         return hoveredView
     }
 
+    private fun getHoveredTile(mouseX: Int, mouseY: Int): CardTile? {
+        val hoveredView = getHoveredView(mouseX, mouseY) ?: return null
+        var hoveredTile: CardTile? = null
+
+        viewsWithPositions { view, x, y, _ ->
+            if (hoveredView.teamKey != view.teamKey) return@viewsWithPositions
+            val (tileX, tileY) = renderer.getItem(
+                x = x.toInt(),
+                y = y.toInt(),
+                cardScale = interpolateScale.get(Interpolate.Easing.IN_OUT),
+                mouseX = mouseX,
+                mouseY = mouseY,
+            ) ?: return@viewsWithPositions
+
+            hoveredTile = view.view.tile(tileX, tileY)
+        }
+
+        return hoveredTile
+    }
+
+    fun getHoveredInteractionStack(mouseX: Int, mouseY: Int): ItemStack? {
+        val tile = getHoveredTile(mouseX, mouseY) ?: return null
+        val stack = when (val action = tile.action) {
+            is CardTileAction.Item -> action.item.stack
+            else -> tile.image.item?.stack ?: tile.imageList.firstNotNullOfOrNull { it.item?.stack }
+        }
+
+        return stack?.takeUnless { it.isEmpty }
+    }
+
     override fun render(drawService: IDrawService) {
         val mouse = drawService.mouse
         val mouseX = mouse.x
@@ -216,24 +248,11 @@ internal class BingoCardsWidget(
         }
     }
 
-    fun onMouseClicked(mouseX: Double, mouseY: Double): Boolean {
+    fun onMouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val hoveredView = getHoveredView(mouseX.toInt(), mouseY.toInt()) ?: return false
+        val hoveredTile = getHoveredTile(mouseX.toInt(), mouseY.toInt())
 
-        var isHandled = false
-
-        viewsWithPositions { view, x, y, _ ->
-            if (hoveredView.teamKey != view.teamKey) return@viewsWithPositions
-            val (tileX, tileY) = renderer.getItem(
-                x = x.toInt(),
-                y = y.toInt(),
-                cardScale = interpolateScale.get(Interpolate.Easing.IN_OUT),
-                mouseX = mouseX.toInt(),
-                mouseY = mouseY.toInt(),
-            ) ?: return@viewsWithPositions
-            val tile = view.view.tile(tileX, tileY) ?: return@viewsWithPositions
-
-            isHandled = onTileClick(tile)
-        }
+        var isHandled = hoveredTile?.let { onTileClick(it, button) } ?: false
 
         if (!isHandled) {
             isHandled = onViewClick?.invoke(hoveredView) ?: false

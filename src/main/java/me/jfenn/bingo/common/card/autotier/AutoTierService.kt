@@ -183,6 +183,7 @@ internal class AutoTierService(
     fun generate(): Result {
         val config = configService.config.autoTier
         val scorer = AutoTierScorer(config)
+        val supportedObjectiveIds = objectiveManager.list().toSet()
 
         val (itemTargets, advancementTargets) = collectTargets()
 
@@ -216,7 +217,9 @@ internal class AutoTierService(
         }
 
         // also drop any stale auto-tier entries that a mod/manual list now categorizes
-        val pruned = result.filter { entry -> !isCategorizedByOthers(entry.item) }
+        val pruned = result.filter { entry ->
+            supportedObjectiveIds.contains(entry.item) && !isCategorizedByOthers(entry.item)
+        }
 
         tierListLoader.writeTierList(config.tierListName, pruned.sort())
 

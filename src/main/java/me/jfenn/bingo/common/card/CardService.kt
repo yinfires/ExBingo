@@ -349,6 +349,17 @@ internal class CardService(
         }
     }
 
+    private fun pruneUnsupportedObjectives(tierList: TierListConfig): TierListConfig {
+        val supported = supportedObjectiveIds.get(Unit)
+        return tierList
+            .filter { entry -> supported.contains(entry.item) }
+            .copy(
+                groups = tierList.groups
+                    .map { group -> group.filter { supported.contains(it) }.toSet() }
+                    .filter { it.size > 1 }
+            )
+    }
+
     private fun getTierLists(
         filterList: ObjectiveFilterList,
     ): Map<String, TierListConfig> {
@@ -395,7 +406,7 @@ internal class CardService(
         // mod-provided categories authoritative even if a mod update categorizes an item
         // that a previous auto-tier run had already assigned (without needing a re-run).
         val autoTierName = configService.config.autoTier.tierListName
-        val tierList = run {
+        val tierList = pruneUnsupportedObjectives(run {
             val selected = getTierLists(filterList)
                 .map { (name, otherList) ->
                     name to otherList.expandTags(tagExpansionService).expandName(name)
@@ -417,7 +428,7 @@ internal class CardService(
                 }
 
             list
-        }
+        })
 
         // Determine the set of uncategorized objectives & add them to the tags for filtering
         val uncategorizedObjectives = supportedObjectiveIds.get(Unit)

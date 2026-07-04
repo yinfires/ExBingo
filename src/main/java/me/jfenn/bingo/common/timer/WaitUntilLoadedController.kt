@@ -9,6 +9,7 @@ import me.jfenn.bingo.common.utils.milliseconds
 import me.jfenn.bingo.common.utils.minus
 import me.jfenn.bingo.common.utils.seconds
 import me.jfenn.bingo.mixinhandler.ServerPlayNetworkHandlerMixinHandler
+import me.jfenn.bingo.platform.IPlayerHandle
 import me.jfenn.bingo.platform.IPlayerManager
 import me.jfenn.bingo.platform.event.IEventBus
 import org.slf4j.Logger
@@ -44,12 +45,21 @@ internal class WaitUntilLoadedController(
 
             val isEveryPlayerLoaded = playerManager.getPlayers()
                 .filter { teamService.isPlaying(it) }
-                .all { player ->
-                    val lastMovementPacket = ServerPlayNetworkHandlerMixinHandler.getLastPlayerMovement(player.player)
-                    lastMovementPacket != null && lastMovementPacket > startedLoading
-                }
+                .all { player -> isPlayerLoaded(player, startedLoading) }
 
-            if (!isEveryPlayerLoaded || Instant.now() - startedLoading > 40.seconds) return@onGameTick
+            // Hold in LOADING until every playing client has confirmed its terrain arrived.
+            // A hard 40s timeout forces the game forward even if a client never reports, so a
+            // single stuck connection can't hang the whole lobby. IMPORTANT: only advance once
+            // loading is confirmed OR the timeout elapsed — the previous logic returned early
+            // *when everyone was loaded* (condition inverted), so it never advanced on the
+            // confirmed path and instead always fell through to the 40s timeout, dropping
+            // high-latency clients into the world before terrain arrived (void / can't break
+            // blocks / others see them idle).
+            val timedOut = Instant.now() - startedLoading > 40.seconds
+            if (!isEveryPlayerLoaded && !timedOut) return@onGameTick
+            if (timedOut && !isEveryPlayerLoaded) {
+                log.warn("Timed out waiting for all players to load spawn terrain; starting anyway.")
+            }
             log.info("Waiting until all players have loaded spawn terrain... Done! (${(Instant.now() - startedLoading)})")
 
             // change to the playing state
@@ -60,5 +70,22 @@ internal class WaitUntilLoadedController(
                 countdownService.sendCountdownPacket(CountdownPacket(0))
             }
         }
+    }
+
+    /**
+     * A player is considered to have loaded their spawn terrain once, after being teleported
+     * into the spawn dimension (i.e. after [startedLoading]), their client has acknowledged
+     * receiving a batch of chunks. This is a direct signal that terrain arrived on the client.
+     *
+     * On a single-player integrated server the host uses an in-memory connection where chunks
+     * are delivered synchronously and a chunk-batch ack may not follow the same timing, so the
+     * movement packet is kept as a fallback signal for that case.
+     */
+    private fun isPlayerLoaded(player: IPlayerHandle, startedLoading: Instant): Boolean {
+        val lastChunkBatch = ServerPlayNetworkHandlerMixinHandler.getLastChunkBatchReceived(player.player)
+        if (lastChunkBatch != null && lastChunkBatch > startedLoading) return true
+
+        val lastMovement = ServerPlayNetworkHandlerMixinHandler.getLastPlayerMovement(player.player)
+        return lastMovement != null && lastMovement > startedLoading
     }
 }

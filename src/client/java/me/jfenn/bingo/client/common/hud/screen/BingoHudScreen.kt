@@ -115,10 +115,15 @@ internal class BingoHudScreen(
         interpolateFromScale = originalCardScale,
         interpolateDuration = 150.milliseconds,
 
-        onTileClick = { tile ->
+        onTileClick = { tile, button ->
             if (gameOver != null) return@BingoCardsWidget false
             when (val action = tile.action) {
-                is CardTileAction.Item -> jei.openItemRecipe(action.item.stack)
+                is CardTileAction.Item -> when (button) {
+                    // Left click shows how to obtain the item (recipe / output),
+                    // right click shows what the item is used for (uses / input).
+                    1 -> jei.openItemUses(action.item.stack)
+                    else -> jei.openItemRecipe(action.item.stack)
+                }
                 else -> false
             }
         },
@@ -227,6 +232,8 @@ internal class BingoHudScreen(
     // bar selection to detect clicks and rebuild (the tab bar's own callback is
     // unreliable because the TabImpls expose no children).
     private var renderedTab: Int = tabsWidget.currentTab
+    private var lastMouseX: Int = -1
+    private var lastMouseY: Int = -1
 
     private fun sendReadyForNextRound() {
         packets.readySetV1.send(SetReadyPacket(true))
@@ -468,6 +475,9 @@ internal class BingoHudScreen(
     }
 
     override fun render(drawService: IDrawService, mouseX: Int, mouseY: Int, delta: Float) {
+        lastMouseX = mouseX
+        lastMouseY = mouseY
+
         // If the gameOver state is cleared, close the screen!
         if (gameOver != null && state.gameOver == null) {
             helper.close()
@@ -510,13 +520,24 @@ internal class BingoHudScreen(
         fireworkRenderer?.render(drawService, (width - sidebarWidth)/2, height/2, state.now)
     }
 
+    override fun keyPressed(input: IKeyInput): Boolean {
+        if (tab == GameOverPacket.EndScreenTab.CARDS) {
+            val hoveredStack = cardsWidget.getHoveredInteractionStack(lastMouseX, lastMouseY)
+            if (hoveredStack != null && jei.handleHoveredStackKey(input.keyCode, input.scanCode, hoveredStack)) {
+                return true
+            }
+        }
+
+        return false
+    }
+
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         // Let the cards widget consume tile/card clicks. Otherwise return false so
         // ScreenImpl falls through to the REAL Screen.mouseClicked (our super here
         // is just the IScreen default that returns false), which forwards the click
         // to the tab bar / buttons. The tab switch itself is picked up in render()
         // because the tab bar's change callback is unreliable (empty tab children).
-        return cardsWidget.onMouseClicked(mouseX, mouseY)
+        return cardsWidget.onMouseClicked(mouseX, mouseY, button)
     }
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, amount: Double): Boolean {

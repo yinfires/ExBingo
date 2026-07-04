@@ -66,7 +66,7 @@ class ScreenImpl(title: Component) : Screen(title) {
     }
 
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        return impl?.keyPressed(KeyInputImpl(keyCode)) == true || super.keyPressed(keyCode, scanCode, modifiers)
+        return impl?.keyPressed(KeyInputImpl(keyCode, scanCode)) == true || super.keyPressed(keyCode, scanCode, modifiers)
     }
 
     override fun isPauseScreen(): Boolean {

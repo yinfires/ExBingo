@@ -18,5 +18,7 @@ interface IScreen {
 }
 
 interface IKeyInput {
+    val keyCode: Int
+    val scanCode: Int
     val isEscape: Boolean
 }

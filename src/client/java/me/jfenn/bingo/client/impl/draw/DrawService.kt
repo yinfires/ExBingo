@@ -130,6 +130,11 @@ class DrawService(
         context.renderTooltip(textRenderer, textList, x, y)
     }
 
+    override fun drawItemTooltip(stack: IItemStack, x: Int, y: Int) {
+        require(stack is ItemStackFactory.ItemStackImpl)
+        context.renderTooltip(Minecraft.getInstance().font, stack.stack, x, y)
+    }
+
     override fun drawDynamicTexture(texture: INativeImage, x: Int, y: Int, width: Int, height: Int) {
         require(texture is NativeImageImpl)
         context.blit(texture.textureId, x, y, 0, 0f, 0f, width, height, texture.width, texture.height)

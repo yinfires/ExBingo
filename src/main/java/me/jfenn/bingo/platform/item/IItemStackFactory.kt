@@ -10,6 +10,13 @@ import net.minecraft.resources.ResourceLocation
 interface IItemStackFactory {
     val emptyStack: IItemStack
 
+    /**
+     * Lists the identifiers of item objectives that should be considered normal card candidates.
+     *
+     * In practice this means items that are both enabled in the current world and exposed through
+     * the regular, non-operator creative inventory tabs. Technical registry entries that never
+     * show up in the creative menu are intentionally excluded here.
+     */
     fun listItems(server: MinecraftServer): List<String>
 
     /**

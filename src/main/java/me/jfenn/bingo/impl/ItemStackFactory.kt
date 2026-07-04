@@ -12,6 +12,7 @@ import net.minecraft.core.component.DataComponents
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.component.*
 import net.minecraft.world.level.EmptyBlockGetter
 import net.minecraft.world.item.Item
@@ -41,9 +42,36 @@ class ItemStackFactory(
     override val emptyStack: IItemStack = ItemStackImpl(ItemStack.EMPTY)
 
     override fun listItems(server: MinecraftServer): List<String> {
+        val creativeItems = listCreativeTabItems(server)
+        if (creativeItems.isNotEmpty()) {
+            return creativeItems
+        }
+
+        logger.warn("[ItemStackFactory] No card-candidate items were found in creative tabs; falling back to the full enabled item registry")
         return BuiltInRegistries.ITEM.holders()
             .map { it.key().location().toString() }
             .filter { isEnabledInWorld(it, server) }
+            .toList()
+    }
+
+    private fun listCreativeTabItems(server: MinecraftServer): List<String> {
+        CreativeModeTabs.tryRebuildTabContents(
+            server.overworld().enabledFeatures(),
+            false,
+            server.registryAccess(),
+        )
+
+        return CreativeModeTabs.tabs()
+            .asSequence()
+            .filter { it.shouldDisplay() && it.hasAnyItems() }
+            .flatMap { it.displayItems.asSequence() }
+            .mapNotNull { stack ->
+                stack.takeUnless { it.isEmpty || it.item == Items.AIR }
+                    ?.item
+                    ?.let { BuiltInRegistries.ITEM.getKey(it).toString() }
+            }
+            .filter { isEnabledInWorld(it, server) }
+            .distinct()
             .toList()
     }
 
