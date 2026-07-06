@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "ChunkMapAccessor",
+    "DedicatedServerPropertiesMixin",
     "EndPortalBlockMixin",
     "GameRuleOverrideMixin",
     "HungerManagerAccessor",
@@ -12,6 +13,7 @@
     "LevelPropertiesAccessor",
     "MapStateAccessor",
     "MinecraftServerAccessor",
+    "MinecraftServerConfigurePackRepositoryMixin",
     "MinecraftServerSkipStartRegionMixin",
     "MinecraftServerUnsafeSkipCloseMixin",
     "PlayerAdvancementTrackerPreventSpectatorsMixin",
@@ -23,7 +25,6 @@
     "ServerBossBarMixin",
     "ServerChunkManagerAccessor",
     "ServerChunkManagerMixin",
-    "ServerEntityManagerMixin",
     "ServerLevelEntityManagerAccessor",
     "ServerPlayNetworkHandlerMixin",
     "ThreadExecutorAccessor"

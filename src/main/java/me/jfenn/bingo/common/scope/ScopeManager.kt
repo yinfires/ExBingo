@@ -9,6 +9,7 @@ import me.jfenn.bingo.common.commonInit
 import me.jfenn.bingo.common.config.ConfigService
 import me.jfenn.bingo.common.event.model.StateChangedEvent
 import me.jfenn.bingo.common.lobbyWorld
+import me.jfenn.bingo.common.options.BingoOptions
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.state.ResetPersistentStates
@@ -67,10 +68,17 @@ class ScopeManager(
             if (isBrokenPostgameSave) {
                 log.warn("[ScopeManager] Detected a half-reset POSTGAME save; rebuilding it as a fresh PREGAME lobby.")
                 state.reset()
+                state.copyPregameOptionsFrom(configService.options)
                 state.changeState(eventBus, GameState.PREGAME)
             } else if (state.state == GameState.UNINITIALIZED) {
+                state.copyPregameOptionsFrom(configService.options)
                 state.changeState(eventBus, GameState.PREGAME)
             } else {
+                if (state.state == GameState.PREGAME) {
+                    // PREGAME can be restored from the world save; let manual edits to
+                    // game-options.json win before the entry listener regenerates cards.
+                    state.copyPregameOptionsFrom(configService.options)
+                }
                 eventBus.emit(StateChangedEvent, StateChangedEvent(state.state, state.state))
             }
 
@@ -103,6 +111,11 @@ class ScopeManager(
             scope.close()
         }
     }
+}
+
+internal fun BingoState.copyPregameOptionsFrom(configOptions: BingoOptions) {
+    options.copyFrom(configOptions)
+    cards.clear()
 }
 
 internal fun BingoState.isBrokenPostgameResetSave(): Boolean {

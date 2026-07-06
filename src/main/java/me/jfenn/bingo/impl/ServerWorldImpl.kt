@@ -153,6 +153,11 @@ class ServerWorldFactory(
                 levelData.setEndDragonFightData(EndDragonFight.Data.DEFAULT)
                 levelPropertiesAccessor.worldOptions = levelPropertiesAccessor.worldOptions.withSeed(OptionalLong.of(seed))
                 server.accessor.invokeLoadLevel()
+                // NeoForge caches the level array used by MinecraftServer.tickChildren().
+                // loadLevel() replaces the map entries but does not invalidate that cache, so without
+                // this the server keeps ticking the closed worlds and the new entity managers never
+                // drain their loading inbox.
+                server.markWorldsDirty()
             }
             tickKeepAlive()
 

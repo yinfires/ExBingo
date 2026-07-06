@@ -1,6 +1,7 @@
 package me.jfenn.bingo.common.menu
 
 import me.jfenn.bingo.common.card.CardService
+import me.jfenn.bingo.common.event.model.CardShuffledEvent
 import me.jfenn.bingo.common.options.OptionsService
 import me.jfenn.bingo.common.spawn.SpawnKitService
 import me.jfenn.bingo.common.state.BingoState
@@ -44,6 +45,7 @@ internal fun MenuComponent.registerSpawnKit(
     ) {
         options.isPlayerKit = !options.isPlayerKit
         cardService.generateCard()
+            .also { card -> eventBus.emit(CardShuffledEvent, CardShuffledEvent(card.id)) }
         optionsService.broadcastHotbarMessage(
             it,
             text.string(
@@ -91,6 +93,7 @@ internal fun MenuComponent.registerSpawnKit(
         editStacks(player, spawnKitService.getPlayerItems(), text.string(StringKey.OptionsSpawnKitPlayer)) { newStacks ->
             spawnKitService.writePlayerItems(newStacks)
             cardService.generateCard()
+                .also { card -> eventBus.emit(CardShuffledEvent, CardShuffledEvent(card.id)) }
         }
     }
 
@@ -104,6 +107,7 @@ internal fun MenuComponent.registerSpawnKit(
     ) {
         options.isTeamKit = !options.isTeamKit
         cardService.generateCard()
+            .also { card -> eventBus.emit(CardShuffledEvent, CardShuffledEvent(card.id)) }
         optionsService.broadcastHotbarMessage(
             it,
             text.string(
@@ -129,6 +133,7 @@ internal fun MenuComponent.registerSpawnKit(
         editStacks(player, spawnKitService.getTeamItems(), text.string(StringKey.OptionsSpawnKitTeam)) { newStacks ->
             spawnKitService.writeTeamItems(newStacks)
             cardService.generateCard()
+                .also { card -> eventBus.emit(CardShuffledEvent, CardShuffledEvent(card.id)) }
         }
     }
 }

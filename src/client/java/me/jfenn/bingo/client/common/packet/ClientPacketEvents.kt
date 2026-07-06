@@ -37,6 +37,7 @@ internal class ClientPacketEvents(
     val cardShuffledV1 = clientNetworking.registerS2C(CardShuffledPacket.V1)
     val cardCompletedV1 = clientNetworking.registerS2C(CardCompletedPacket.V1)
     val cardImageV1 = clientNetworking.registerS2C(CardImagePacket.V1)
+    val cardStateRequestV1 = clientNetworking.registerC2S(CardStateRequestPacket.V1)
     val gameOverV1 = clientNetworking.registerS2C(GameOverPacket.V1)
     val gameOverV2 = clientNetworking.registerS2C(GameOverPacket.V2)
     val gameOverV3 = clientNetworking.registerS2C(GameOverPacket.V3)

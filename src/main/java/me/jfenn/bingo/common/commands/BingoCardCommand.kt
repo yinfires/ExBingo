@@ -64,6 +64,7 @@ class BingoCardCommand(
         val (x, y) = getCardPosition(tile)
         val originalCard = cardViewService.getPlayerCard(player)
         cardService.replaceEntry(originalCard, x, y, objectiveId)
+        eventBus.emit(CardShuffledEvent, CardShuffledEvent(originalCard.id))
         sendFeedback(text.string(StringKey.CommandCardSetSuccess, tileName(x, y), objectiveId))
     }
 
@@ -71,6 +72,7 @@ class BingoCardCommand(
         val (x, y) = getCardPosition(tile)
         val originalCard = cardViewService.getPlayerCard(player)
         cardService.replaceEntry(originalCard, x, y, BingoObjective.FreeSpace())
+        eventBus.emit(CardShuffledEvent, CardShuffledEvent(originalCard.id))
         sendFeedback(text.string(StringKey.CommandCardSetSuccess, tileName(x, y), StringKey.CardFreeSpace))
     }
 
@@ -86,6 +88,7 @@ class BingoCardCommand(
         )
 
         val newEntry = newCard.entry(x, y)
+        eventBus.emit(CardShuffledEvent, CardShuffledEvent(newCard.id))
         sendFeedback(text.string(StringKey.CommandCardSetSuccess, tileName(x, y), newEntry.objectiveId))
     }
 
@@ -102,6 +105,7 @@ class BingoCardCommand(
     private fun IExecutionContext.setCardSeed(seed: Long) {
         val card = cardViewService.getPlayerCard(player)
         val newCard = cardService.generateCard(card, seed = seed)
+        eventBus.emit(CardShuffledEvent, CardShuffledEvent(newCard.id))
         sendFeedback(
             text.string(
                 StringKey.CommandCardSeedSet,
@@ -183,6 +187,7 @@ class BingoCardCommand(
             ?: throw IllegalArgumentException("Could not find card '$cardTag'")
 
         team.cardId = card.id
+        eventBus.emit(CardShuffledEvent, CardShuffledEvent(card.id))
         sendFeedback(
             text.empty()
                 .append("Team ")
@@ -264,12 +269,16 @@ class BingoCardCommand(
                             state.teams.values
                                 .filter { it.cardId == null || it.cardId == prevCard.id }
                                 .forEach { it.cardId = newCard.id }
+                            eventBus.emit(CardShuffledEvent, CardShuffledEvent(newCard.id))
                         }
                     }
 
                     literal("pop") {
                         requires { hasConfigureGame() && hasState(GameState.PREGAME) }
-                        executes { state.popCard() }
+                        executes {
+                            state.popCard()
+                            eventBus.emit(CardShuffledEvent, CardShuffledEvent(state.getActiveCard().id))
+                        }
                     }
                 }
             }

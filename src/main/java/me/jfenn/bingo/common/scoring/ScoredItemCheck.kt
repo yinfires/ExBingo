@@ -225,6 +225,7 @@ internal class ScoredItemCheck(
                 objectiveManager.init(it)
                 it.ticks = card.ticks
             }
+            eventBus.emit(CardShuffledEvent, CardShuffledEvent(card.id))
 
             // Re-count current scores
             for (team in teams) {
@@ -384,6 +385,7 @@ internal class ScoredItemCheck(
 
             if (nextCard != null) {
                 onCardAssigned(nextCard, listOf(team))
+                eventBus.emit(CardShuffledEvent, CardShuffledEvent(nextCard.id))
             }
         }
 

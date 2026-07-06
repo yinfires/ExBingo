@@ -52,7 +52,7 @@ class JeiApi : IJeiApi {
             // Recipe/uses go through createFocus which normalizes internally, so they were
             // unaffected — the bookmark path is the only one that needs a clean stack.
             val cleanStack = ItemStack(stack.item, stack.count)
-            return toggleBookmark(runtime.bookmarkOverlay, runtime.ingredientManager, cleanStack)
+            return addBookmark(runtime.bookmarkOverlay, runtime.ingredientManager, cleanStack)
         }
 
         return false
@@ -94,7 +94,7 @@ class JeiApi : IJeiApi {
         }.getOrDefault(false)
     }
 
-    private fun toggleBookmark(bookmarkOverlay: Any, ingredientManager: IIngredientManager, stack: ItemStack): Boolean {
+    private fun addBookmark(bookmarkOverlay: Any, ingredientManager: IIngredientManager, stack: ItemStack): Boolean {
         return runCatching {
             // Use the explicit ItemStack type so we don't rely on JEI's single-arg type
             // inference. Returns empty if JEI considers the stack invalid/unregistered —
@@ -130,7 +130,7 @@ class JeiApi : IJeiApi {
 
             val bookmarkInterface = Class.forName("mezz.jei.gui.bookmarks.IBookmark")
             bookmarkList.javaClass
-                .getMethod("toggleBookmark", bookmarkInterface)
+                .getMethod("add", bookmarkInterface)
                 .invoke(bookmarkList, ingredientBookmark)
 
             true

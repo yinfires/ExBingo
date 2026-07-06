@@ -17,7 +17,7 @@ ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-b
 
 - JEI物品管理器：从宾果卡目标打开物品配方界面。
 - 简单的语音聊天（Simple Voice Chat）：按队伍管理语音分组。
-- Xaero 的小地图 / 世界地图：对局结束返回大厅时，自动清理本局已探索的地图缓存与路径点。
+- Xaero 的小地图 / 世界地图：对局中同步同队远距离玩家位置；对局结束返回大厅时，自动清理本局已探索的地图缓存与路径点。
 
 
 <details>
@@ -91,7 +91,7 @@ During the port, ExBingo rewrote a large portion of the upstream mod's code, so 
 
 - JEI: opens item recipe views from bingo card targets.
 - Simple Voice Chat: manages voice groups by team.
-- Xaero's Minimap / World Map: on returning to the lobby after a round, the round's explored map cache and waypoints are cleared automatically.
+- Xaero's Minimap / World Map: during a round, distant teammates are synced to the map; on returning to the lobby, the round's explored map cache and waypoints are cleared automatically.
 <details>
 <summary>provides a dedicated board and detailed difficulty tiers</summary>
 

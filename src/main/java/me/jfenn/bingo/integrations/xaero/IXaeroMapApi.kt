@@ -1,6 +1,8 @@
 package me.jfenn.bingo.integrations.xaero
 
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.entity.player.Player
 
 /**
  * Server-side integration with Xaero's Minimap / World Map.
@@ -14,6 +16,13 @@ import net.minecraft.server.level.ServerPlayer
  */
 interface IXaeroMapApi {
     fun isInstalled(): Boolean
+
+    /**
+     * Register an ExBingo team tracker with Xaero's synced player tracking system,
+     * so teammates continue to appear on Xaero maps even when vanilla entity
+     * tracking no longer sends them to each other's clients.
+     */
+    fun registerTeamTracker(server: MinecraftServer, shouldTrack: (Player, Player) -> Boolean): Boolean
 
     /**
      * Switch the given players' Xaero map to a fresh world id, isolating the

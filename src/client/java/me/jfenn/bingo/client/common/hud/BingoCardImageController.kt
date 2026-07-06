@@ -17,6 +17,13 @@ internal class BingoCardImageController(
     packetEvents: ClientPacketEvents,
     eventBus: IEventBus,
 ) {
+    private fun markCardsDirty() {
+        for (card in hudState.cards.values) {
+            card.isDirty = true
+            card.guiCard.isDirty = true
+        }
+    }
+
     private fun updateCardImage(packet: ClientPacket<CardImagePacket>) {
         val (image) = packet
 
@@ -25,6 +32,7 @@ internal class BingoCardImageController(
             log.info("[BingoCardImageController] Removing card image ${image.id}")
             val nativeImage = hudState.images.remove(image.id)
             nativeImage?.close()
+            markCardsDirty()
             return
         }
 
@@ -64,6 +72,7 @@ internal class BingoCardImageController(
 
         nativeImage.upload()
         png.flush()
+        markCardsDirty()
     }
 
     init {

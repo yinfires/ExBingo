@@ -32,4 +32,23 @@ object ServerPlayNetworkHandlerMixinHandler {
         val id = System.identityHashCode(player)
         chunkBatchMap[id] = Instant.now()
     }
+
+    /**
+     * Clear the recorded movement / chunk-batch timestamps for the given players.
+     *
+     * These maps are never pruned on their own and are keyed by the player's identity hash, so
+     * timestamps recorded in a previous round (or while the player was idling in the lobby) can
+     * survive into the next round. [WaitUntilLoadedController] gates LOADING -> PLAYING on
+     * "a chunk-batch ack arrived AFTER loading started"; a stale timestamp left over from the
+     * lobby/previous game can satisfy that check before the fresh spawn terrain has actually been
+     * sent, dropping the client into an unloaded world (void / can't break blocks). Resetting the
+     * signals when a new LOADING phase begins forces the gate to wait for a genuinely new ack.
+     */
+    fun resetLoadingSignals(players: Iterable<ServerPlayer>) {
+        for (player in players) {
+            val id = System.identityHashCode(player)
+            playerMap.remove(id)
+            chunkBatchMap.remove(id)
+        }
+    }
 }

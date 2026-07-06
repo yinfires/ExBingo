@@ -3,6 +3,7 @@ package me.jfenn.bingo.common.chat
 import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.team.TeamService
+import me.jfenn.bingo.integrations.xaero.XaeroWaypointShareMessage
 import me.jfenn.bingo.platform.event.IEventBus
 import me.jfenn.bingo.platform.event.model.AllowChatMessageEvent
 
@@ -17,6 +18,11 @@ internal class ChatMessageController(
         // override default chat to only send team-specific messages
         eventBus.register(AllowChatMessageEvent) { (message, player) ->
             if (chatMessageService.bypassAllowMessageCheck) return@register true
+
+            if (XaeroWaypointShareMessage.isShare(message.raw) && teamService.getPlayerTeam(player) != null) {
+                val sent = chatMessageService.sendTeamMessage(message.text, player)
+                return@register !sent
+            }
 
             val shouldTeamChat = when {
                 teamService.isPlaying(player) -> config.chat.defaultToTeamChat

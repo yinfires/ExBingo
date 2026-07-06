@@ -34,6 +34,13 @@ internal class WaitUntilLoadedController(
     init {
         events.onEnter(GameState.LOADING) {
             startedLoading = Instant.now()
+            // Drop any movement / chunk-batch timestamps left over from the lobby or a previous
+            // round before we start gating on them. Otherwise a stale ack recorded before this
+            // LOADING phase could satisfy isPlayerLoaded() immediately, letting the client into
+            // the world before its fresh spawn terrain arrives (void / can't break blocks).
+            ServerPlayNetworkHandlerMixinHandler.resetLoadingSignals(
+                playerManager.getPlayers().map { it.player }
+            )
             log.info("Waiting until all players have loaded spawn terrain...")
         }
 

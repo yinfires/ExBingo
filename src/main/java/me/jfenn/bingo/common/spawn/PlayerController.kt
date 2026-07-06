@@ -129,7 +129,7 @@ internal class PlayerController(
         val isStuckInWorld = player.serverWorld != lobbyWorld && state.state == GameState.PREGAME
         val hasCountdownInvisibility = player.getEffects()
             .any { it.type == EffectType.INVISIBILITY && it.duration < 0 }
-        log.info(
+        log.debug(
             "[PlayerController] updateGameMode({}): state={}, gameId={}, targetGameMode={}, currentGameMode={}, isAlive={}, world={}#{}, team={}, activeTeam={}, countdownInvisible={}, isRespawnNeeded={}, isRedundantPlayingRespawn={}, isStuckInLobby={}, isStuckInWorld={}, forceReset={}",
             player.playerName,
             state.state,
@@ -149,7 +149,7 @@ internal class PlayerController(
             forceReset
         )
         if (isRedundantPlayingRespawn) {
-            log.info(
+            log.debug(
                 "[PlayerController] Suppressing redundant PLAYING respawn after {} for {} in gameId={}",
                 oldPlayerState.lastState,
                 player.playerName,

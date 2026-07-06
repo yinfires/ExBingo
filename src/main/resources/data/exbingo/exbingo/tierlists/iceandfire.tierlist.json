@@ -85,14 +85,9 @@
         "iceandfire:dragonforge_lightning_input",
         "iceandfire:dragon_flute",
         "iceandfire:dragon_horn",
-        "iceandfire:dragon_stick",
-        "iceandfire:dragon_meal",
         "iceandfire:dragon_seeker",
         "iceandfire:epic_dragon_seeker",
         "iceandfire:legendary_dragon_seeker",
-        "iceandfire:dragon_skull_fire",
-        "iceandfire:dragon_skull_ice",
-        "iceandfire:dragon_skull_lightning",
         "iceandfire:summoning_crystal_fire",
         "iceandfire:summoning_crystal_ice",
         "iceandfire:summoning_crystal_lightning",
@@ -310,6 +305,10 @@
         "iceandfire:iceandfire/lectern"
     ],
     "C": [
+        "iceandfire:dragon_stick",
+        "iceandfire:dragon_skull_fire",
+        "iceandfire:dragon_skull_ice",
+        "iceandfire:dragon_skull_lightning",
         "iceandfire:silver_block",
         "iceandfire:raw_silver_block",
         "iceandfire:silver_pile",
@@ -342,6 +341,7 @@
         "iceandfire:podium_dark_oak"
     ],
     "D": [
+        "iceandfire:dragon_meal",
         "iceandfire:ash",
         "iceandfire:burnt_torch",
         "iceandfire:chared_stone",

@@ -64,13 +64,19 @@ internal class BingoHudController(
     private val state: BingoHudState,
     private val text: TextProvider,
     keyBindingManager: IKeyBindingManager,
-    packetEvents: ClientPacketEvents,
+    private val packetEvents: ClientPacketEvents,
     private val eventBus: IEventBus,
     private val client: IClient,
 ) : BingoComponent() {
 
+    companion object {
+        private val CARD_STATE_REQUEST_DELAYS_MS = listOf(250L, 1000L, 3000L, 5000L)
+        private val INCOMPLETE_CARD_REQUEST_COOLDOWN = 2000.milliseconds
+    }
+
     private var cardHudWasClicked: Boolean = false
     private var openCardKeyAlreadyPressed: Boolean = false
+    private var lastIncompleteCardStateRequestAt: Instant? = null
     private val openCardKey = keyBindingManager.registerKey(
         KEYBIND_OPEN_CARD,
         GLFW.GLFW_KEY_Y,
@@ -84,6 +90,31 @@ internal class BingoHudController(
     )
 
     private var fireworkRenderer: BingoEndFireworkRenderer? = null
+
+    private fun requestCardState(force: Boolean = false) {
+        val now = Instant.now()
+        val lastRequestAt = lastIncompleteCardStateRequestAt
+        if (!force && lastRequestAt != null && now - lastRequestAt < INCOMPLETE_CARD_REQUEST_COOLDOWN)
+            return
+
+        if (packetEvents.cardStateRequestV1.send(CardStateRequestPacket())) {
+            lastIncompleteCardStateRequestAt = now
+        }
+    }
+
+    private fun scheduleInitialCardStateRequests() {
+        lastIncompleteCardStateRequestAt = null
+        for (delay in CARD_STATE_REQUEST_DELAYS_MS) {
+            CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS, client.executor)
+                .execute { requestCardState(force = true) }
+        }
+    }
+
+    private fun hasIncompleteCardState(): Boolean {
+        return state.cards.values.any { card ->
+            card.tiles.size < 25 || card.tiles.take(25).all { it == CardTile.EMPTY }
+        }
+    }
 
     private val interpolateCardX = Interpolate(0f, 0f)
     private val interpolateCardY = Interpolate(0f, 0f)
@@ -508,8 +539,10 @@ internal class BingoHudController(
 
     init {
         eventBus.register(packetEvents.cardResetV1) {
+            state.clearDisplayedCards()
             if (state.gameOver != null) {
-                state.clearDisplayedCards()
+                // Keep the end screen state alive; the game status/ready packets will close it
+                // when the server actually leaves POSTGAME.
             } else {
                 state.reset()
                 client.closeExBingoScreen()
@@ -622,11 +655,21 @@ internal class BingoHudController(
         }
 
         eventBus.register(ClientServerEvent.Join) {
-            client.execute { state.resetAll() }
+            client.execute {
+                state.resetAll()
+                lastIncompleteCardStateRequestAt = null
+            }
+        }
+
+        eventBus.register(ClientServerEvent.ChannelRegister) {
+            client.execute { scheduleInitialCardStateRequests() }
         }
 
         eventBus.register(ClientServerEvent.Disconnect) {
-            client.execute { state.resetAll() }
+            client.execute {
+                state.resetAll()
+                lastIncompleteCardStateRequestAt = null
+            }
         }
 
         eventBus.register(ServerEvent.Started) {
@@ -643,6 +686,10 @@ internal class BingoHudController(
 
         eventBus.register(ClientTickEvent.End) {
             if (client.isPaused) return@register
+
+            if (hasIncompleteCardState()) {
+                requestCardState()
+            }
 
             var openCardKeyWasPressed = false
             while (openCardKey.wasPressed()) openCardKeyWasPressed = true

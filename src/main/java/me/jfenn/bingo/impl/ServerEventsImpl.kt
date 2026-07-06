@@ -6,7 +6,6 @@ import me.jfenn.bingo.platform.commands.ISignedMessage
 import me.jfenn.bingo.platform.event.IEventBus
 import me.jfenn.bingo.platform.event.model.*
 import me.jfenn.bingo.platform.text.IText
-import net.minecraft.core.Direction
 import net.minecraft.network.chat.Component
 import net.minecraft.server.packs.resources.PreparableReloadListener
 import net.minecraft.server.level.ServerPlayer
@@ -131,24 +130,6 @@ class ServerEventsImpl(
             val player = event.entity as? ServerPlayer ?: return@addListener
             val playerImpl = getPlayerImpl(player)
             val results = eventBus.emit(AttackEntityEvent, AttackEntityEvent(player.server, playerImpl, player.level(), InteractionHand.MAIN_HAND, event.target, null))
-            ActionResult.collapse(results)
-                ?.applyTo(event)
-        }
-
-        NeoForge.EVENT_BUS.addListener(PlayerInteractEvent.LeftClickBlock::class.java) { event ->
-            val player = event.entity as? ServerPlayer ?: return@addListener
-            val playerImpl = getPlayerImpl(player)
-            val results = eventBus.emit(
-                AttackBlockEvent,
-                AttackBlockEvent(
-                    player.server,
-                    playerImpl,
-                    event.level,
-                    event.hand,
-                    event.pos,
-                    event.face ?: Direction.UP
-                )
-            )
             ActionResult.collapse(results)
                 ?.applyTo(event)
         }

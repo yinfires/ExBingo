@@ -104,15 +104,27 @@ internal class CardViewService(
         }
     }
 
-    fun sendCardShuffledPacket(cardId: UUID) {
-        val affectedTeams = buildList {
-            if (state.getActiveCard().id == cardId)
-                add(null)
-            addAll(
-                state.getRegisteredTeams()
-                    .filter { it.cardId == cardId }
-            )
+    private fun getAffectedTeams(cardId: UUID): List<BingoTeam?> = buildList {
+        if (state.cards.firstOrNull()?.id == cardId)
+            add(null)
+
+        addAll(
+            state.getRegisteredTeams()
+                .filter { team -> team.cardId == cardId || state.getCard(team)?.id == cardId }
+        )
+    }.distinctBy { it?.key }
+
+    fun updateCard(
+        cardId: UUID,
+        forceNotFlashing: Boolean = false,
+    ) {
+        for (team in getAffectedTeams(cardId)) {
+            updateCard(team, forceNotFlashing)
         }
+    }
+
+    fun sendCardShuffledPacket(cardId: UUID) {
+        val affectedTeams = getAffectedTeams(cardId)
 
         for (player in playerManager.getPlayers()) {
             val playerTeams = affectedTeams
@@ -129,28 +141,22 @@ internal class CardViewService(
         if (!supportsCardHud(player))
             return
 
+        if (state.cards.isEmpty()) {
+            sendClearDisplayPacket(player)
+            return
+        }
+
         val teams = state.getRegisteredTeams()
         val displayTeams = (teams + null)
             .filter { isViewingCard(player, it) }
 
         val isViewingSpectatorCards = displayTeams.size > 1
         val displayCards = displayTeams.mapNotNull { team ->
+            updateCard(team)
+
             val map = team
                 ?.let { teamService.getTeamMap(it) }
                 ?: state.getPreviewMap(mapService)
-
-            // If the map view has no tiles, update it first!
-            // (this is necessary to populate the display info)
-            //
-            // Note: this condition was previously inverted (`isEmpty() != true`), which meant
-            // updateCard() was skipped exactly when the view was empty/null — so a player whose
-            // channel registered before the card's tiles were first generated (e.g. just after
-            // entering PLAYING) received an empty CardTilesPacket. updateCard() only sends
-            // *changed* tiles afterwards, so the client stayed blank until a tile changed (was
-            // achieved) and got resent — which is the "概率性整张棋盘不显示，只有完成的格子才显示" bug.
-            if (map.view?.tiles.isNullOrEmpty()) {
-                updateCard(team)
-            }
 
             val display = when {
                 // When the player is viewing multiple cards, use player names on the card titles
@@ -174,6 +180,24 @@ internal class CardViewService(
             map.view?.copy(display = display)
                 ?.let { sendEntireCardTilesPacket(player, it) }
         }
+    }
+
+    /**
+     * True if any tile on an active team's card is currently flashing (i.e. was achieved within
+     * [FLASHING_DURATION]). This is the only situation that requires the map/card view to be
+     * rebuilt every tick — all other updates are driven by discrete events. The check only
+     * evaluates booleans (hasAchieved + a timestamp diff) and allocates nothing, so it is cheap
+     * enough to run every tick as a gate before the full [updateCard] rebuild.
+     */
+    fun hasFlashingTiles(): Boolean {
+        for (team in state.getRegisteredTeams()) {
+            val card = state.getCard(team) ?: continue
+            for (objective in card.objectives.values) {
+                if (objective.isFlashing(team.key, FLASHING_DURATION))
+                    return true
+            }
+        }
+        return false
     }
 
     fun isViewingPreviewCard(player: IPlayerHandle) =
