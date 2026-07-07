@@ -11,6 +11,21 @@ ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-b
 
 在移植过程中，ExBingo 对原模组进行了大量代码重写，因此部分功能和表现会与原模组存在差别。
 
+## 内置功能
+
+- 多人 Bingo 物品收集、队伍、棋盘与大厅流程。
+- 队伍共享箱：每个 Bingo 队伍拥有持久化共享箱，可配置是否参与 Bingo 物品目标判定与消耗物品模式。
+- 队伍传送：游戏中同队玩家可互相传送。
+- 客户端 HUD/快捷键支持：客户端安装本模组后，可用默认按键 `B` 打开队伍箱。
+
+**队伍共享箱与传送指令**
+
+- `/teamchest` 或 `/tc` —— 打开所在队伍的共享箱。
+- `/teamtp <玩家>` 或 `/ttp <玩家>` —— 传送到同队玩家。
+- `/teamchest toggle`、`/teamchest count`、`/tptoggle` —— OP 在游戏开始前切换队伍箱、队伍箱物品判定、队伍传送。
+
+Bingo 游戏重置时会清空所有队伍箱。
+
 ## 联动与兼容
 
 **模组联动**
@@ -18,7 +33,6 @@ ExBingo 是 [Yet Another Bingo](https://modrinth.com/mod/yet-another-minecraft-b
 - JEI物品管理器：从宾果卡目标打开物品配方界面。
 - 简单的语音聊天（Simple Voice Chat）：按队伍管理语音分组。
 - Xaero 的小地图 / 世界地图：对局中同步同队远距离玩家位置；对局结束返回大厅时，自动清理本局已探索的地图缓存与路径点。
-
 
 <details>
 <summary>提供专属棋盘与详细难度分级</summary>
@@ -64,7 +78,7 @@ ExBingo 默认就能识别其他模组的物品与进度，并按以下规则处
 
 服务端配置位于存档/服务器的 `config/exbingo/` 目录，可直接用文本编辑器修改：
 
-- `config/exbingo/config.json` —— 主配置。例如：`excludeModUncategorizedFromCards` 控制未分类模组内容是否默认排除，`excludeUnbreakableBlocksFromCards` 控制无法破坏方块是否默认排除，`revealAllAdvancements` 控制原版进度树（按 L 的界面）是否一开始就显示全部进度而非需先解锁前置（默认开启），自动分级参数见 `autoTier` 段，已关闭的棋盘见 `disabledFilterPresets` 段。
+- `config/exbingo/config.json` —— 主配置。例如：`excludeModUncategorizedFromCards` 控制未分类模组内容是否默认排除，`excludeUnbreakableBlocksFromCards` 控制无法破坏方块是否默认排除，`revealAllAdvancements` 控制原版进度树（按 L 的界面）是否一开始就显示全部进度而非需先解锁前置（默认开启），队伍功能见 `teamChestEnabled`、`teamChestCountsForObjectives`、`teamTeleportEnabled`，自动分级参数见 `autoTier` 段，已关闭的棋盘见 `disabledFilterPresets` 段。
 - `config/exbingo/tierlists/*.tierlist.json` —— 各难度表，按 `S/A/B/C/D` 分档；`autotier.tierlist.json` 由自动分级生成。
 - `config/exbingo/game-options.json` —— 棋盘与对局选项。
 
@@ -72,7 +86,7 @@ ExBingo 默认就能识别其他模组的物品与进度，并按以下规则处
 
 ## 许可证与来源
 
-ExBingo 是 Yet Another Bingo 的派生版本，使用 `LGPL-3.0-only` 许可证。许可证文本见 [LICENSE](LICENSE) 和 [COPYING](COPYING)，来源与鸣谢见 [NOTICE](NOTICE)。
+ExBingo 是 Yet Another Bingo 的派生版本，使用 `LGPL-3.0-only` 许可证。队伍共享箱与队伍传送功能参考了 MIT 许可的 [YetAnotherBingo-TeamChest](https://github.com/ImCZFy/YetAnotherBingo-TeamChest)（Copyright (c) 2025 ChengZhiFy）。许可证文本见 [LICENSE](LICENSE) 和 [COPYING](COPYING)，来源与鸣谢见 [NOTICE](NOTICE)。
 
 </details>
 
@@ -85,6 +99,21 @@ This mod keeps the upstream mod's main gameplay, resources, and data layout, and
 
 During the port, ExBingo rewrote a large portion of the upstream mod's code, so some features and behavior differ from the original mod.
 
+## Built-In Features
+
+- Multiplayer Bingo item-hunt rounds with teams, cards, and lobby flow.
+- Team chest: every Bingo team has a persistent shared chest, configurable for Bingo item scoring and consume-items mode.
+- Team teleport: teammates can teleport to each other during a game.
+- Client HUD/keybind support: with the client installed, the default `B` key opens the team chest.
+
+**Team chest and teleport commands**
+
+- `/teamchest` or `/tc` — open your team's shared chest.
+- `/teamtp <player>` or `/ttp <player>` — teleport to a teammate.
+- `/teamchest toggle`, `/teamchest count`, and `/tptoggle` — ops can toggle team chest, chest item scoring, and team teleport before the game starts.
+
+All team chests are cleared when the Bingo game resets.
+
 ## Integrations
 
 **Mod integrations**
@@ -92,6 +121,7 @@ During the port, ExBingo rewrote a large portion of the upstream mod's code, so 
 - JEI: opens item recipe views from bingo card targets.
 - Simple Voice Chat: manages voice groups by team.
 - Xaero's Minimap / World Map: during a round, distant teammates are synced to the map; on returning to the lobby, the round's explored map cache and waypoints are cleared automatically.
+
 <details>
 <summary>provides a dedicated board and detailed difficulty tiers</summary>
 
@@ -136,7 +166,7 @@ The disabled set is stored server-side in the `disabledFilterPresets` field of `
 
 Server-side configuration lives in the world/server `config/exbingo/` directory and can be edited directly with a text editor:
 
-- `config/exbingo/config.json` — main config. For example, `excludeModUncategorizedFromCards` controls whether uncategorized modded content is excluded by default, `excludeUnbreakableBlocksFromCards` controls unbreakable-block exclusion, `revealAllAdvancements` controls whether the vanilla advancement tree (the "L" screen) shows every advancement from the start instead of hiding entries until their prerequisites are unlocked (on by default), and auto-tier parameters live under the `autoTier` block, and disabled boards under `disabledFilterPresets`.
+- `config/exbingo/config.json` — main config. For example, `excludeModUncategorizedFromCards` controls whether uncategorized modded content is excluded by default, `excludeUnbreakableBlocksFromCards` controls unbreakable-block exclusion, `revealAllAdvancements` controls whether the vanilla advancement tree (the "L" screen) shows every advancement from the start instead of hiding entries until their prerequisites are unlocked (on by default), team features are controlled by `teamChestEnabled`, `teamChestCountsForObjectives`, and `teamTeleportEnabled`, auto-tier parameters live under the `autoTier` block, and disabled boards under `disabledFilterPresets`.
 - `config/exbingo/tierlists/*.tierlist.json` — tier lists, split into `S/A/B/C/D`; `autotier.tierlist.json` is generated by auto-tiering.
 - `config/exbingo/game-options.json` — board and match options.
 
@@ -144,4 +174,4 @@ Run `/reload` or restart the server to apply changes. These files are tracked by
 
 ## License And Attribution
 
-ExBingo is a derivative version of Yet Another Bingo and is distributed under `LGPL-3.0-only`. See [LICENSE](LICENSE) and [COPYING](COPYING) for license texts, and [NOTICE](NOTICE) for source and credit information.
+ExBingo is a derivative version of Yet Another Bingo and is distributed under `LGPL-3.0-only`. The team chest and team teleport features reference the MIT-licensed [YetAnotherBingo-TeamChest](https://github.com/ImCZFy/YetAnotherBingo-TeamChest) project (Copyright (c) 2025 ChengZhiFy). See [LICENSE](LICENSE) and [COPYING](COPYING) for license texts, and [NOTICE](NOTICE) for source and credit information.

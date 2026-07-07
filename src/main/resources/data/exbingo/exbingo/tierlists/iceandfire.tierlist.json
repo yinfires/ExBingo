@@ -15,7 +15,6 @@
         "iceandfire:dragonegg_copper",
         "iceandfire:dragonegg_black",
         "iceandfire:dragon_ice",
-        "iceandfire:dragon_ice_spikes",
         "iceandfire:fire_dragon_blood",
         "iceandfire:fire_dragon_flesh",
         "iceandfire:fire_dragon_heart",
@@ -89,8 +88,6 @@
         "iceandfire:summoning_crystal_fire",
         "iceandfire:summoning_crystal_ice",
         "iceandfire:summoning_crystal_lightning",
-        "iceandfire:fire_stew",
-        "iceandfire:frost_stew",
         "iceandfire:lightning_stew",
         "iceandfire:iceandfire/dragon_egg",
         "iceandfire:iceandfire/kill_if_dragon",
@@ -105,6 +102,7 @@
         "iceandfire:iceandfire/dragon_meal"
     ],
     "A": [
+        "iceandfire:dragon_ice_spikes",
         "iceandfire:dragonbone_arrow",
         "iceandfire:dragonbone_bow",
         "iceandfire:dragonbone_sword",
@@ -204,8 +202,6 @@
         "iceandfire:pixie_wings",
         "iceandfire:siren_flute",
         "iceandfire:siren_tear",
-        "iceandfire:blindfold",
-        "iceandfire:earplugs",
         "iceandfire:hippogryph_egg",
         "iceandfire:hippogryph_skull",
         "iceandfire:hippogryph_sword",
@@ -268,6 +264,8 @@
         "iceandfire:iceandfire/tame_pixie"
     ],
     "B": [
+        "iceandfire:fire_stew",
+        "iceandfire:frost_stew",
         "iceandfire:fire_lily",
         "iceandfire:frost_lily",
         "iceandfire:lightning_lily",
@@ -290,6 +288,8 @@
         "iceandfire:iceandfire/lectern"
     ],
     "C": [
+        "iceandfire:blindfold",
+        "iceandfire:earplugs",
         "iceandfire:pixie_jar_empty",
         "iceandfire:pixie_house_oak",
         "iceandfire:pixie_house_birch",

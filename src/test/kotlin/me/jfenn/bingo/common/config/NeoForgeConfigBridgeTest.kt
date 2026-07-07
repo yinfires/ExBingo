@@ -46,6 +46,14 @@ class NeoForgeConfigBridgeTest {
         assertTrue(missingChinese.isEmpty(), "Missing zh_cn config translations: $missingChinese")
     }
 
+    @Test
+    fun `default board source weights are all one`() {
+        assertTrue(
+            BingoConfig().boardSourceWeights.values.all { it == 1.0 },
+            "Default board source weights should all be 1.0.",
+        )
+    }
+
     private fun collectConfigLeaves(type: KClass<*>, prefix: String = ""): List<String> {
         val constructor = type.primaryConstructor
             ?: error("Config type ${type.simpleName} must have a primary constructor")

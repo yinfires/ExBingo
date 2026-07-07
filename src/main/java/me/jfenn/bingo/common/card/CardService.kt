@@ -629,6 +629,8 @@ internal class CardService(
             excludedObjectives.addAll(objective.objectives.values.flatMap { it.conflictsWithObjectives })
         }
 
+        val sourceWeights = configService.config.boardSourceWeights
+
         // Pick the given number of items from the tier list for each tier
         for ((tierIndex, tier) in TierLabel.entries.withIndex()) {
             var tierCountRemaining = dist[tierIndex]
@@ -637,7 +639,7 @@ internal class CardService(
             for ((tag, count) in requiredTagCounts.shuffled(random)) {
                 val itemCount = count[tierIndex].coerceAtMost(tierCountRemaining)
 
-                tierList.pick(tier, excludedObjectives, random)
+                tierList.pick(tier, excludedObjectives, random, sourceWeights)
                     .filter { tag.contains(it.item) }
                     .mapNotNull { createObjectivePair(it) }
                     .take(itemCount)
@@ -650,7 +652,7 @@ internal class CardService(
             }
 
             // Then, add remaining items that satisfy other filter conditions
-            tierList.pick(tier, excludedObjectives, random)
+            tierList.pick(tier, excludedObjectives, random, sourceWeights)
                 // exclude required count tags when picking normal items (otherwise the actual counts may differ)
                 .filter { entry ->
                     requiredTagCounts.none { (tag, _) -> tag.contains(entry.item) }

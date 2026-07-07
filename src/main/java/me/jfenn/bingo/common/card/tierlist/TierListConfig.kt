@@ -82,7 +82,10 @@ data class TierListConfig(
         TierLabel.D -> d
     }
 
-    private fun getWeightedSet(set: Set<TierListEntry>): LinkedList<Pair<TierListEntry, Double>> {
+    private fun getWeightedSet(
+        set: Set<TierListEntry>,
+        sourceWeights: Map<String, Double>,
+    ): LinkedList<Pair<TierListEntry, Double>> {
         val ret = LinkedList<Pair<TierListEntry, Double>>()
         for (entry in set) {
             val inverseWeight = groups
@@ -90,17 +93,30 @@ data class TierListConfig(
                 .sumOf { group -> group.size }
                 .coerceAtLeast(1)
 
-            ret.add(entry to (1.0 / inverseWeight))
+            val configuredWeight = sourceWeights[entry.listName] ?: 1.0
+            val sourceWeight = configuredWeight
+                .takeIf { it.isFinite() }
+                ?.coerceAtLeast(0.0)
+                ?: 0.0
+            val weight = sourceWeight / inverseWeight
+            if (weight > 0.0) {
+                ret.add(entry to weight)
+            }
         }
 
         return ret
     }
 
-    private fun pickFromTier(tier: TierLabel, excluding: Set<String>, random: Random) = sequence {
+    private fun pickFromTier(
+        tier: TierLabel,
+        excluding: Set<String>,
+        random: Random,
+        sourceWeights: Map<String, Double>,
+    ) = sequence {
         val items = getTier(tier)
-        val itemWeights = getWeightedSet(items)
+        val itemWeights = getWeightedSet(items, sourceWeights)
 
-        getWeightedSet(values)
+        getWeightedSet(values, sourceWeights)
             // divide by 5, since values are placed in each tier
             .map { (entry, weight) -> entry to weight / 5.0 }
             .let { itemWeights.addAll(it) }
@@ -130,12 +146,17 @@ data class TierListConfig(
         }
     }
 
-    fun pick(tier: TierLabel, excluding: Set<String>, random: Random) = sequence {
+    fun pick(
+        tier: TierLabel,
+        excluding: Set<String>,
+        random: Random,
+        sourceWeights: Map<String, Double> = emptyMap(),
+    ) = sequence {
         // Sort tiers by distance from the selected tier
         // (i.e. pick tier first, and then any items from available adjacent tiers)
         val sortedTiers = TierLabel.entries.sortedBy { (it.ordinal - tier.ordinal).absoluteValue }
         for (sortedTier in sortedTiers) {
-            yieldAll(pickFromTier(sortedTier, excluding, random))
+            yieldAll(pickFromTier(sortedTier, excluding, random, sourceWeights))
         }
     }
 

@@ -12,6 +12,9 @@ internal object Permission {
     /** "/bingo ..." commands (& lobby game menu) */
     val CONFIGURE_GAME = PermissionKey("$MOD_ID.configure.game", PermissionDefault.OPERATORS)
 
+    /** Server-side ExBingo config screen values */
+    val CONFIGURE_SERVER = PermissionKey("$MOD_ID.configure.server", PermissionDefault.OPERATORS)
+
     /** "/bingo set" command (& lobby player menu) */
     val CONFIGURE_PLAYER = PermissionKey("$MOD_ID.configure.player", PermissionDefault.ALLOW)
 

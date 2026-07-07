@@ -119,6 +119,16 @@ object NeoForgeConfigBridge {
         }
     }
 
+    fun snapshotCommonValues(base: BingoConfig = BingoConfig()): BingoConfig =
+        commonValues.applyTo(base)
+
+    fun setCommonValuesFrom(config: BingoConfig) {
+        commonValues.setFrom(config)
+    }
+
+    fun applyCommonValuesTo(config: BingoConfig): BingoConfig =
+        commonValues.applyTo(config)
+
     private fun syncLoadedSpecsToJson(configDir: Path) {
         val current = readLegacyConfig(configDir)
         val updated = applyLoadedSpecs(current)
@@ -186,6 +196,16 @@ object NeoForgeConfigBridge {
             entries,
             allowBlank = false,
             validator = ::isDifficultyPresetEntry,
+        )
+        val boardSourceWeights = builder.defineStringList(
+            "boardSourceWeights",
+            commonKey("cards", "board_source_weights"),
+            "Card source weights written as source_id=weight. Sources not listed use 1.0; 0 disables a source.",
+            "boardSourceWeights",
+            { boardSourceWeightList(defaultConfig().boardSourceWeights) },
+            entries,
+            allowBlank = false,
+            validator = ::isBoardSourceWeightEntry,
         )
         val preventScoringSpawnKitItems = builder.defineBoolean(
             "preventScoringSpawnKitItems",
@@ -322,6 +342,36 @@ object NeoForgeConfigBridge {
             "Allows connecting clients to use the Bingo HUD instead of only map/card behavior.",
             "supportClientHud",
             { defaultConfig().supportClientHud },
+            entries,
+        )
+
+        init {
+            builder.pop()
+            builder.pushSection("team", "Team chest and teleport behavior.", commonSectionKey("team"), sections)
+        }
+
+        val teamChestEnabled = builder.defineBoolean(
+            "teamChestEnabled",
+            commonKey("team", "team_chest_enabled"),
+            "Enables each Bingo team to use a persistent shared chest.",
+            "teamChestEnabled",
+            { defaultConfig().teamChestEnabled },
+            entries,
+        )
+        val teamChestCountsForObjectives = builder.defineBoolean(
+            "teamChestCountsForObjectives",
+            commonKey("team", "team_chest_counts_for_objectives"),
+            "Allows matching team chest items to score Bingo item objectives and be consumed in consume-items mode.",
+            "teamChestCountsForObjectives",
+            { defaultConfig().teamChestCountsForObjectives },
+            entries,
+        )
+        val teamTeleportEnabled = builder.defineBoolean(
+            "teamTeleportEnabled",
+            commonKey("team", "team_teleport_enabled"),
+            "Allows players to teleport to teammates.",
+            "teamTeleportEnabled",
+            { defaultConfig().teamTeleportEnabled },
             entries,
         )
 
@@ -621,6 +671,7 @@ object NeoForgeConfigBridge {
             config.copy(
                 itemFilterPresets = parseItemFilterPresetList(itemFilterPresets.get()),
                 difficultyPresets = parseDifficultyPresetList(difficultyPresets.get()),
+                boardSourceWeights = parseBoardSourceWeightList(boardSourceWeights.get()),
                 disabledFilterPresets = disabledFilterPresets.get().toSet(),
                 preventScoringSpawnKitItems = preventScoringSpawnKitItems.get(),
                 excludeSpawnKitItemsFromCards = excludeSpawnKitItemsFromCards.get(),
@@ -639,6 +690,9 @@ object NeoForgeConfigBridge {
                 nightVisionInPostgame = nightVisionInPostgame.get(),
                 revealAllAdvancements = revealAllAdvancements.get(),
                 supportClientHud = supportClientHud.get(),
+                teamChestEnabled = teamChestEnabled.get(),
+                teamChestCountsForObjectives = teamChestCountsForObjectives.get(),
+                teamTeleportEnabled = teamTeleportEnabled.get(),
                 startWhenReadySeconds = startWhenReadySeconds.get().takeUnless { it == DISABLED_SECONDS },
                 startWhenReadyWaitsForTeams = startWhenReadyWaitsForTeams.get(),
                 startWhenReadyWaitsForFirstVote = startWhenReadyWaitsForFirstVote.get(),
@@ -680,6 +734,7 @@ object NeoForgeConfigBridge {
         fun setFrom(config: BingoConfig) {
             itemFilterPresets.set(itemFilterPresetList(config.itemFilterPresets))
             difficultyPresets.set(difficultyPresetList(config.difficultyPresets))
+            boardSourceWeights.set(boardSourceWeightList(config.boardSourceWeights))
             disabledFilterPresets.set(config.disabledFilterPresets.toList().sorted())
             preventScoringSpawnKitItems.set(config.preventScoringSpawnKitItems)
             excludeSpawnKitItemsFromCards.set(config.excludeSpawnKitItemsFromCards)
@@ -696,6 +751,9 @@ object NeoForgeConfigBridge {
             nightVisionInPostgame.set(config.nightVisionInPostgame)
             revealAllAdvancements.set(config.revealAllAdvancements)
             supportClientHud.set(config.supportClientHud)
+            teamChestEnabled.set(config.teamChestEnabled)
+            teamChestCountsForObjectives.set(config.teamChestCountsForObjectives)
+            teamTeleportEnabled.set(config.teamTeleportEnabled)
             startWhenReadySeconds.set(config.startWhenReadySeconds ?: DISABLED_SECONDS)
             startWhenReadyWaitsForTeams.set(config.startWhenReadyWaitsForTeams)
             startWhenReadyWaitsForFirstVote.set(config.startWhenReadyWaitsForFirstVote)
@@ -1138,6 +1196,28 @@ object NeoForgeConfigBridge {
                     it.all { count -> count >= 0 } &&
                     it.sum() == 25
         }
+    }
+
+    private fun boardSourceWeightList(weights: Map<String, Double>): List<String> =
+        weights.entries
+            .sortedBy { it.key }
+            .map { (source, weight) -> "$source=$weight" }
+
+    private fun parseBoardSourceWeightList(values: List<String>): Map<String, Double> =
+        values.mapNotNull { value ->
+            val source = value.substringBefore('=').trim()
+            val weight = value.substringAfter('=', "").trim().toDoubleOrNull()
+            if (source.isNotBlank() && weight != null && weight.isFinite() && weight >= 0.0) {
+                source to weight
+            } else {
+                null
+            }
+        }.toMap(LinkedHashMap())
+
+    private fun isBoardSourceWeightEntry(value: String): Boolean {
+        val source = value.substringBefore('=').trim()
+        val weight = value.substringAfter('=', "").trim().toDoubleOrNull()
+        return source.isNotBlank() && weight != null && weight.isFinite() && weight >= 0.0
     }
 
     private fun soundVolumeList(soundVolumes: Map<String, Float>): List<String> =

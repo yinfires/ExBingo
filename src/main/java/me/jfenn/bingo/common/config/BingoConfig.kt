@@ -3,6 +3,7 @@ package me.jfenn.bingo.common.config
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
+import me.jfenn.bingo.common.card.filter.ObjectiveFilter
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
 import me.jfenn.bingo.common.card.autotier.AutoTierConfig
 import me.jfenn.bingo.common.card.tierlist.TierLabel
@@ -16,6 +17,9 @@ data class BingoConfig(
 
     var itemFilterPresets: Map<String, ObjectiveFilterList> = ObjectiveFilterList.PRESETS,
     var difficultyPresets: Map<String, List<Int>> = TierLabel.DIFFICULTY_PRESETS,
+    // source ids are tier list file names (plus generated sources such as uncategorized).
+    // Missing sources default to 1.0 at card-generation time.
+    var boardSourceWeights: Map<String, Double> = DEFAULT_BOARD_SOURCE_WEIGHTS,
 
     // ids of filter presets ("boards") that ops have disabled. Disabled boards are hidden
     // from the board-selection menu and never returned by the preset list, so they can't be
@@ -44,6 +48,11 @@ data class BingoConfig(
     val preventLobbyChaos: Boolean = false,
     // gives players a tutorial/settings book when they join the lobby
     val lobbyTutorialBook: Boolean = true,
+
+    // team shared chest and same-team teleport features
+    var teamChestEnabled: Boolean = true,
+    var teamChestCountsForObjectives: Boolean = true,
+    var teamTeleportEnabled: Boolean = true,
 
     // gives players a "memento" card after the game ends (if isLobbyMode=false)
     val giveMementoInSurvival: Boolean = true,
@@ -94,4 +103,26 @@ data class BingoConfig(
 
     // only applies to dedicated server
     val server: ServerConfig = ServerConfig(),
-)
+) {
+    companion object {
+        val DEFAULT_BOARD_SOURCE_WEIGHTS = linkedMapOf(
+            "advancements" to 1.0,
+            "cataclysm" to 1.0,
+            "challenge" to 1.0,
+            "eternal_starlight" to 1.0,
+            "farmersdelight" to 1.0,
+            "fdbosses" to 1.0,
+            "iceandfire" to 1.0,
+            "irons_spellbooks" to 1.0,
+            "items" to 1.0,
+            "mowziesmobs" to 1.0,
+            "netherman" to 1.0,
+            "simplified" to 1.0,
+            "the_bumblezone" to 1.0,
+            "twilightforest" to 1.0,
+            "undergarden" to 1.0,
+            AutoTierConfig().tierListName to 1.0,
+            ObjectiveFilter.UNCATEGORIZED to 1.0,
+        )
+    }
+}

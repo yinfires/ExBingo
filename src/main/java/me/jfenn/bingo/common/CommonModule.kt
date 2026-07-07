@@ -69,6 +69,7 @@ import me.jfenn.bingo.common.state.PersistentStates
 import me.jfenn.bingo.common.state.ResetPersistentStates
 import me.jfenn.bingo.common.stats.*
 import me.jfenn.bingo.common.team.*
+import me.jfenn.bingo.common.teamchest.*
 import me.jfenn.bingo.common.text.MessageService
 import me.jfenn.bingo.common.text.PlaceholderService
 import me.jfenn.bingo.common.text.TextProvider
@@ -138,6 +139,7 @@ val commonModule = module {
     singleOf(::EventBus) bind IEventBus::class
     singleOf(::ScopeManager) bind IScopeManager::class
     singleOf(::ServerPacketEvents)
+    singleOf(::ServerConfigSyncController)
 
     singleOf(::ReadyTimerState)
 
@@ -153,6 +155,8 @@ val commonModule = module {
     singleOf(::CoordsCommand)
     singleOf(::JoinCommand)
     singleOf(::ShuffleTeamsCommand)
+    singleOf(::TeamChestCommand)
+    singleOf(::TeamTeleportCommand)
     singleOf(::SpectatorCommand)
     singleOf(::ReadyCommand)
     singleOf(::StatsCommand)
@@ -358,7 +362,9 @@ val commonModule = module {
 
         scopedOf(::OfflinePlayerCache)
         scopedOf(::TeamService) bind ResetTeamService::class
+        scopedOf(::TeamChestService)
         scopedOf(::TeamController)
+        scopedOf(::TeamChestController)
 
         scopedOf(::CountdownService)
         scopedOf(::CountdownController)
@@ -403,6 +409,7 @@ fun Koin.commonInit() {
     get<ServerDatapackManager>()
     get<IScopeManager>()
     get<ServerPacketEvents>()
+    get<ServerConfigSyncController>()
 
     get<BingoCommand>()
     get<BingoCardCommand>()
@@ -417,6 +424,8 @@ fun Koin.commonInit() {
     get<CoordsCommand>()
     get<JoinCommand>()
     get<ShuffleTeamsCommand>()
+    get<TeamChestCommand>()
+    get<TeamTeleportCommand>()
     get<SpectatorCommand>()
     get<ReadyCommand>()
     get<StatsCommand>()
@@ -466,6 +475,7 @@ fun Scope.commonInit() {
     get<StatsSyncController>()
 
     get<TeamController>()
+    get<TeamChestController>()
 
     get<CountdownController>()
     get<TimerCheck>()

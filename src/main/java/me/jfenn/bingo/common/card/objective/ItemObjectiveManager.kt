@@ -10,6 +10,7 @@ import me.jfenn.bingo.common.card.objective.ObjectiveDisplay.Companion.FORMAT_MI
 import me.jfenn.bingo.common.data.ScopedData
 import me.jfenn.bingo.common.map.CardTile
 import me.jfenn.bingo.common.state.BingoState
+import me.jfenn.bingo.common.teamchest.TeamChestService
 import me.jfenn.bingo.platform.IPlayerHandle
 import me.jfenn.bingo.platform.item.IItemStack
 import me.jfenn.bingo.platform.item.IItemStackFactory
@@ -26,6 +27,7 @@ internal class ItemObjectiveManager(
     private val data: ScopedData,
     private val objectiveDisplayService: ObjectiveDisplayService,
     private val objectiveService: ObjectiveService,
+    private val teamChestService: TeamChestService,
 ): IObjectiveManager {
     override fun list(): Iterable<String> {
         val dataKeys = data.objectives.rootObjectives
@@ -136,7 +138,7 @@ internal class ItemObjectiveManager(
         player: IPlayerHandle,
         objective: BingoObjective.ItemEntry,
     ) {
-        val itemViews = player.allHeldStackViews()
+        val itemViews = (player.allHeldStackViews() + teamChestService.getScoredStackViews(player))
             .filter { canSatisfyPartial(it.stack, objective) }
 
         // Confiscate item stacks until the objective requirements are met
@@ -161,7 +163,11 @@ internal class ItemObjectiveManager(
 
         val playersToItems = objectiveService.getTeamPlayers(card)
             .map { (team, player) ->
-                val inventory = player.allHeldStacks().toList()
+                val inventory = if (teamChestService.shouldExposeScoredItems(team, player)) {
+                    player.allHeldStacks().toList() + teamChestService.getScoredStacks(team)
+                } else {
+                    player.allHeldStacks().toList()
+                }
                 Triple(team, player, inventory)
             }
 

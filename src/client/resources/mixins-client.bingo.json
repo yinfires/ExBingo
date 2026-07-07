@@ -9,6 +9,7 @@
     "AdvancementToastDifficultyOverlayMixin",
     "AdvancementWidgetDifficultyOverlayMixin",
     "BetterAdvancementWidgetDifficultyOverlayMixin",
+    "BookViewScreenSuggestCommandMixin",
     "CreateWorldScreenAccessor",
     "DualStackForceIPv4Mixin",
     "GuiGraphicsItemDifficultyOverlayMixin",

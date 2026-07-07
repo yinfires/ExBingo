@@ -1,5 +1,6 @@
 package me.jfenn.bingo.client.common
 
+import me.jfenn.bingo.client.common.config.ClientServerConfigController
 import me.jfenn.bingo.client.common.hud.BingoCardImageController
 import me.jfenn.bingo.client.common.hud.BingoHudController
 import me.jfenn.bingo.client.common.hud.ItemDifficultyOverlayService
@@ -19,6 +20,7 @@ import me.jfenn.bingo.client.common.sound.ScorePacketReceiver
 import me.jfenn.bingo.client.common.sound.SoundService
 import me.jfenn.bingo.client.common.state.BingoHudState
 import me.jfenn.bingo.client.common.stats.ClientStatsSyncController
+import me.jfenn.bingo.client.common.teamchest.TeamChestKeybindController
 import me.jfenn.bingo.client.common.world.BingoWorldManager
 import me.jfenn.bingo.client.integrations.JeiIntegration
 import me.jfenn.bingo.client.integrations.CompassHudCompat
@@ -38,6 +40,7 @@ import java.util.*
 
 val commonClientModule = module {
     singleOf(::ClientPacketEvents) withOptions { createdAtStart() }
+    singleOf(::ClientServerConfigController) withOptions { createdAtStart() }
 
     single { BingoHudState() }
     singleOf(::ClientCardBufferRenderer)
@@ -51,6 +54,7 @@ val commonClientModule = module {
     singleOf(::BingoHudController) withOptions { createdAtStart() }
     singleOf(::BingoCardImageController) withOptions { createdAtStart() }
     singleOf(::ItemDifficultyOverlayService) withOptions { createdAtStart() }
+    singleOf(::TeamChestKeybindController) withOptions { createdAtStart() }
 
     singleOf(::SoundService)
     singleOf(::ClientSounds) withOptions { createdAtStart() }

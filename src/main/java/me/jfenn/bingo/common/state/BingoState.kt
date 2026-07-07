@@ -13,6 +13,7 @@ import me.jfenn.bingo.common.options.RestoreOption
 import me.jfenn.bingo.common.scoring.GameMessage
 import me.jfenn.bingo.common.spawn.PlayerState
 import me.jfenn.bingo.common.team.BingoTeam
+import me.jfenn.bingo.common.teamchest.TeamChestData
 import me.jfenn.bingo.common.team.BingoTeamKey
 import me.jfenn.bingo.common.text.TextProvider
 import me.jfenn.bingo.common.utils.*
@@ -43,6 +44,7 @@ data class BingoState internal constructor(
     val options: BingoOptions,
     val restoreOptions: MutableList<RestoreOption> = mutableListOf(),
     val teams: MutableMap<BingoTeamKey, BingoTeam> = mutableMapOf(),
+    val teamChests: MutableMap<BingoTeamKey, TeamChestData> = mutableMapOf(),
     var previewMap: BingoMap? = null,
     // This is a temporary list that should be overwritten by `CardService.generate()`
     val cards: MutableList<BingoCard> = mutableListOf(),
@@ -256,6 +258,7 @@ data class BingoState internal constructor(
         timeOffline = Duration.ZERO
         timeAdjustment = Duration.ZERO
         teams.clear()
+        teamChests.clear()
         playersJoinedIds.clear()
         players.clear()
         playersSpectatingIds.clear()

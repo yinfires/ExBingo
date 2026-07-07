@@ -33,6 +33,11 @@ internal class InfoBookService(
     private val textFactory: ITextFactory,
 ) {
 
+    private fun commandLink(label: String, suggestion: String = label) =
+        textFactory.literal(label)
+            .formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE)
+            .also { it.setClickEvent(TextAction.SuggestCommand(suggestion)) }
+
     private fun getIntroPage(player: IPlayerHandle) =
         textFactory.empty()
             .append(
@@ -59,7 +64,10 @@ internal class InfoBookService(
                     it.append("\n\n").append(
                         when {
                             state.isLobbyMode -> text.string(StringKey.IntroUseConfigMenu)
-                            else -> text.string(StringKey.IntroUseConfigCommands)
+                            else -> text.string(
+                                StringKey.IntroUseConfigCommands,
+                                commandLink("/bingo", "/bingo "),
+                            )
                         }
                     )
                 }
@@ -97,7 +105,7 @@ internal class InfoBookService(
             })
             .also {
                 if (permissions.hasPermission(player, Permission.COMMAND_COORDS)) {
-                    it.append("\n\n").append(text.string(StringKey.IntroUseCoords))
+                    it.append("\n\n").append(text.string(StringKey.IntroUseCoords, commandLink("/coords")))
                 }
             }
 
@@ -110,9 +118,7 @@ internal class InfoBookService(
             .append(
                 text.string(
                     StringKey.IntroAutotierCommand,
-                    text.string(StringKey.IntroAutotierCommandLink)
-                        .formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE)
-                        .also { it.setClickEvent(TextAction.SuggestCommand("/bingo autotier generate")) },
+                    commandLink("/bingo autotier generate"),
                 )
             )
             .append("\n\n")
@@ -127,13 +133,51 @@ internal class InfoBookService(
             .append(
                 text.string(
                     StringKey.IntroCarddisable,
-                    text.string(StringKey.IntroCarddisableCommandLink)
-                        .formatted(ChatFormatting.DARK_GREEN, ChatFormatting.UNDERLINE)
-                        .also { it.setClickEvent(TextAction.SuggestCommand("/bingo carddisable ")) },
+                    commandLink("/bingo carddisable <board>", "/bingo carddisable "),
+                    commandLink("/bingo cardenable <board>", "/bingo cardenable "),
                 )
             )
             .append("\n\n")
             .append(text.string(StringKey.IntroCarddisableNote).formatted(ChatFormatting.GRAY))
+
+    private fun getTeamFeaturesPage(player: IPlayerHandle) =
+        textFactory.empty()
+            .append(text.string(StringKey.IntroTeamFeaturesTitle).formatted(ChatFormatting.BOLD))
+            .append("\n\n")
+            .append(
+                text.string(
+                    StringKey.IntroTeamFeaturesChest,
+                    commandLink("/teamchest"),
+                    commandLink("/tc"),
+                )
+            )
+            .append("\n")
+            .append(
+                text.string(
+                    StringKey.IntroTeamFeaturesChestKey,
+                    textFactory.keybind(KEYBIND_OPEN_TEAM_CHEST).formatted(ChatFormatting.DARK_GREEN),
+                )
+            )
+            .append("\n\n")
+            .append(
+                text.string(
+                    StringKey.IntroTeamFeaturesTeleport,
+                    commandLink("/teamtp <player>", "/teamtp "),
+                    commandLink("/ttp <player>", "/ttp "),
+                )
+            )
+            .also {
+                if (permissions.hasPermission(player, Permission.CONFIGURE_GAME)) {
+                    it.append("\n\n").append(
+                        text.string(
+                            StringKey.IntroTeamFeaturesOps,
+                            commandLink("/teamchest toggle"),
+                            commandLink("/teamchest count"),
+                            commandLink("/tptoggle"),
+                        ).formatted(ChatFormatting.GRAY)
+                    )
+                }
+            }
 
     private fun toggleText(
         value: Boolean,
@@ -261,6 +305,7 @@ internal class InfoBookService(
                     add(getSettingsPage(player, settings))
                 add(getHintsPage(player))
             }
+            add(getTeamFeaturesPage(player))
 
             // mod compatibility & auto-tiering (ops only — it can write server config)
             if (permissions.hasPermission(player, Permission.COMMAND_AUTOTIER))

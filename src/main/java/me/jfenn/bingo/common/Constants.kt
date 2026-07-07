@@ -40,6 +40,7 @@ internal val URL_WIKI_GETTING_STARTED: URI = URI.create("https://horrific.dev/bi
 val BINGO_WORLD_PREFIX = "${ChatFormatting.GREEN}[BINGO]${ChatFormatting.WHITE}"
 
 val KEYBIND_OPEN_CARD = StringKey.KeybindOpenCard.key
+val KEYBIND_OPEN_TEAM_CHEST = StringKey.KeybindOpenTeamChest.key
 val KEYBIND_TOGGLE_HUD = StringKey.KeybindToggleHud.key
 
 const val MDC_DEBUG = "$MOD_ID_BINGO:debug"

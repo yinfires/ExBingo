@@ -1,6 +1,9 @@
 package me.jfenn.bingo.common.event.packet
 
 import me.jfenn.bingo.common.config.PlayerSettings
+import me.jfenn.bingo.common.config.ServerConfigRequestPacket
+import me.jfenn.bingo.common.config.ServerConfigSnapshotPacket
+import me.jfenn.bingo.common.config.ServerConfigUpdatePacket
 import me.jfenn.bingo.common.card.tierlist.ItemDifficultyOverlayPacket
 import me.jfenn.bingo.common.game.GameOverPacket
 import me.jfenn.bingo.common.game.GameStatusPacket
@@ -70,6 +73,10 @@ internal class ServerPacketEvents(
     val receivePlayerSettingsV1 = serverNetworking.registerS2C(PlayerSettings.V1_S2C)
     val sendPlayerSettingsV2 = serverNetworking.registerC2S(PlayerSettings.V2)
     val receivePlayerSettingsV2 = serverNetworking.registerS2C(PlayerSettings.V2)
+
+    val serverConfigRequestV1 = serverNetworking.registerC2S(ServerConfigRequestPacket.V1)
+    val serverConfigUpdateV1 = serverNetworking.registerC2S(ServerConfigUpdatePacket.V1)
+    val serverConfigSnapshotV1 = serverNetworking.registerS2C(ServerConfigSnapshotPacket.V1)
 
     val statsHashV1C2S = serverNetworking.registerC2S(StatsCheckPacket.V1)
     val statsHashV1S2C = serverNetworking.registerS2C(StatsCheckPacket.V1)
