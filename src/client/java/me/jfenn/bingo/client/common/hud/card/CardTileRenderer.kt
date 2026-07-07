@@ -2,6 +2,8 @@ package me.jfenn.bingo.client.common.hud.card
 
 import me.jfenn.bingo.client.common.hud.card.ClientCardBufferRenderer.Companion.CARD_WIDTH
 import me.jfenn.bingo.client.common.state.BingoHudState
+import me.jfenn.bingo.client.mixinhandler.ItemDifficultyOverlayRenderer
+import me.jfenn.bingo.common.card.tierlist.TierLabel
 import me.jfenn.bingo.client.platform.renderer.IDrawService
 import me.jfenn.bingo.common.map.CardTile
 import me.jfenn.bingo.common.map.CardTileImage
@@ -29,8 +31,10 @@ internal class CardTileRenderer(
             tile.image,
             tile.imageList,
             tile.decoration,
-            itemX,
-            itemY,
+            tile.itemTier,
+            true,
+            itemX = itemX,
+            itemY = itemY,
         )
     }
 
@@ -39,6 +43,8 @@ internal class CardTileRenderer(
         image: CardTileImage,
         imageList: List<CardTileImage>,
         decoration: CardTile.Decoration?,
+        itemTier: TierLabel?,
+        suppressItemFallback: Boolean = true,
         itemX: Int,
         itemY: Int,
     ) {
@@ -60,6 +66,8 @@ internal class CardTileRenderer(
                 renderTileImage(
                     drawService = drawService,
                     image = imageListImage,
+                    itemTier = itemTier,
+                    suppressItemFallback = suppressItemFallback,
                     itemX = 0,
                     itemY = 0,
                 )
@@ -81,6 +89,8 @@ internal class CardTileRenderer(
                 renderTileImage(
                     drawService = drawService,
                     image = imageListImage,
+                    itemTier = itemTier,
+                    suppressItemFallback = suppressItemFallback,
                     itemX = (i % 2) * 12,
                     itemY = (i / 2) * 12,
                 )
@@ -88,13 +98,15 @@ internal class CardTileRenderer(
 
             drawService.matrices.pop()
         } else {
-            renderTileImage(drawService, image, itemX, itemY)
+            renderTileImage(drawService, image, itemTier, suppressItemFallback, itemX, itemY)
         }
     }
 
     fun renderTileImage(
         drawService: IDrawService,
         image: CardTileImage,
+        itemTier: TierLabel?,
+        suppressItemFallback: Boolean = true,
         itemX: Int,
         itemY: Int,
     ) {
@@ -105,7 +117,13 @@ internal class CardTileRenderer(
         } else if (item != null) {
             // always draws centered at z=150... but 3d items can extend past this
             // so any overlays should start at z=300 to be safe
-            drawService.drawItemStack(item, itemX, itemY, itemX + itemY * CARD_WIDTH)
+            if (suppressItemFallback || itemTier != null) {
+                ItemDifficultyOverlayRenderer.withItemDecorationTier(itemTier) {
+                    drawService.drawItemStack(item, itemX, itemY, itemX + itemY * CARD_WIDTH)
+                }
+            } else {
+                drawService.drawItemStack(item, itemX, itemY, itemX + itemY * CARD_WIDTH)
+            }
         }
     }
 

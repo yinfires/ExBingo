@@ -17,6 +17,7 @@ data class ClientConfig(
     var cardOverlap: CardOverlap = CardOverlap.ABOVE,
     var cardTeamOutlines: Boolean = true,
     var showMultipleCards: Boolean = false,
+    var showItemDifficulties: Boolean = false,
     var hideOnF3: Boolean = true,
     var hideOnChat: Boolean = false,
     var messageFromOtherTeams: Boolean = true,

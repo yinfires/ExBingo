@@ -213,6 +213,7 @@ internal class ClientCardRenderer(
                         cardTileRenderer.renderTileImage(
                             drawService = service,
                             image = cardTileImage,
+                            itemTier = tile.itemTier,
                             itemX = x + 9 + 20 * col,
                             itemY = y + 9 + 20 * row,
                         )

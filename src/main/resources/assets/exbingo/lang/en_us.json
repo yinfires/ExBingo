@@ -255,6 +255,8 @@
   "exbingo.configuration.client.hud.card_team_outlines.tooltip": "Draws outlines when other teams have captured a card tile.",
   "exbingo.configuration.client.hud.show_multiple_cards": "Show Multiple Cards",
   "exbingo.configuration.client.hud.show_multiple_cards.tooltip": "Attempts to draw all available cards in the HUD when space allows.",
+  "exbingo.configuration.client.hud.show_item_difficulties": "Show Item and Advancement Difficulties",
+  "exbingo.configuration.client.hud.show_item_difficulties.tooltip": "Draws S/A/B/C/D difficulty letters on item and advancement icons that have an ExBingo tier.",
   "exbingo.configuration.client.hud.hide_on_f3": "Hide On F3",
   "exbingo.configuration.client.hud.hide_on_f3.tooltip": "Hides the Bingo card HUD while the debug screen is open.",
   "exbingo.configuration.client.hud.hide_on_chat": "Hide On Chat",

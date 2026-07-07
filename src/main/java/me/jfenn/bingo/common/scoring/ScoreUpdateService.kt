@@ -89,6 +89,7 @@ internal class ScoreUpdateService(
                 .take(4)
                 .map { CardTileImage(it, null) }
         } else emptyList()
+        val itemTier = card.entries.firstOrNull { it.objectiveId == objective.id }?.tier
 
         gameMessageService.addGameMessage(
             GameMessage.ItemScored(
@@ -97,6 +98,7 @@ internal class ScoreUpdateService(
                 cardId = card.id,
                 image = CardTileImage(objective.display.item, objective.display.image),
                 imageList = imageList,
+                itemTier = itemTier,
                 decoration = objective.display.decoration,
                 itemName = objective.display.name ?: text.literal("unknown"),
                 player = scoredPlayer,
@@ -127,6 +129,7 @@ internal class ScoreUpdateService(
                 .take(4)
                 .map { CardTileImage(it, null) }
         } else emptyList()
+        val itemTier = card.entries.firstOrNull { it.objectiveId == objective.id }?.tier
 
         gameMessageService.addGameMessage(
             GameMessage.ItemScored(
@@ -135,6 +138,7 @@ internal class ScoreUpdateService(
                 cardId = card.id,
                 image = CardTileImage(objective.display.item, objective.display.image),
                 imageList = imageList,
+                itemTier = itemTier,
                 decoration = objective.display.decoration,
                 itemName = objective.display.name ?: text.literal("unknown"),
                 player = null,

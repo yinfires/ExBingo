@@ -3,6 +3,7 @@ package me.jfenn.bingo.common.scoring
 import me.jfenn.bingo.common.MOD_ID_BINGO
 import me.jfenn.bingo.common.map.CardTile
 import me.jfenn.bingo.common.map.CardTileImage
+import me.jfenn.bingo.common.card.tierlist.TierLabel
 import me.jfenn.bingo.common.team.BingoTeamKey
 import me.jfenn.bingo.platform.IPacketBuf
 import me.jfenn.bingo.platform.packet.PacketConverter
@@ -18,6 +19,7 @@ data class GameMessagePacket(
     val team: BingoTeamKey,
     val image: CardTileImage = CardTileImage.EMPTY,
     val imageList: List<CardTileImage> = emptyList(),
+    val itemTier: TierLabel? = null,
     val decoration: CardTile.Decoration?,
     val messageType: ScoreMessagePacket.MessageType,
     val message: ITextSerialized,
@@ -36,6 +38,7 @@ data class GameMessagePacket(
             dest.writeList(source.imageList) {
                 CardTileImage.V1.toPacketBuf(it, dest)
             }
+            dest.writeNullable(source.itemTier?.name, dest::writeString)
             dest.writeNullable(source.decoration, dest::writeEnum)
 
             dest.writeEnum(source.messageType)
@@ -50,6 +53,9 @@ data class GameMessagePacket(
 
             val image = CardTileImage.V1.fromPacketBuf(buf)
             val imageList = buf.readList { CardTileImage.V1.fromPacketBuf(buf) }
+            val itemTier = buf.readNullable {
+                TierLabel.valueOf(buf.readString())
+            }
             val decoration = buf.readNullable { buf.readEnum<CardTile.Decoration>() }
 
             val messageType = buf.readEnum<ScoreMessagePacket.MessageType>()
@@ -63,6 +69,7 @@ data class GameMessagePacket(
                 team = team,
                 image = image,
                 imageList = imageList,
+                itemTier = itemTier,
                 decoration = decoration,
                 messageType = messageType,
                 message = message,

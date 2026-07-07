@@ -10,6 +10,7 @@ import me.jfenn.bingo.common.bossbar.BossBarService
 import me.jfenn.bingo.common.bossbar.ResetBossBarService
 import me.jfenn.bingo.common.card.CardService
 import me.jfenn.bingo.common.card.TagExpansionService
+import me.jfenn.bingo.common.card.tierlist.ItemDifficultyOverlaySyncController
 import me.jfenn.bingo.common.card.autotier.AutoTierCommand
 import me.jfenn.bingo.common.card.autotier.AutoTierService
 import me.jfenn.bingo.common.card.filter.ObjectiveFilterCommand
@@ -288,6 +289,7 @@ val commonModule = module {
         scopedOf(::ObjectiveFilterService)
         scopedOf(::CardService)
         scopedOf(::AutoTierService)
+        scopedOf(::ItemDifficultyOverlaySyncController)
 
         scopedOf(::LobbyModeService)
         scopedOf(::LobbyModeController)
@@ -456,6 +458,7 @@ fun Scope.commonInit() {
     get<GameStatusController>()
     get<GameMessageController>()
     get<GameOverController>()
+    get<ItemDifficultyOverlaySyncController>()
 
     get<LobbyModeController>()
 

@@ -2,6 +2,7 @@ package me.jfenn.bingo.client.common
 
 import me.jfenn.bingo.client.common.hud.BingoCardImageController
 import me.jfenn.bingo.client.common.hud.BingoHudController
+import me.jfenn.bingo.client.common.hud.ItemDifficultyOverlayService
 import me.jfenn.bingo.client.common.hud.BingoMessageRenderer
 import me.jfenn.bingo.client.common.hud.ReadyHudRenderer
 import me.jfenn.bingo.client.common.hud.card.CardTileRenderer
@@ -49,6 +50,7 @@ val commonClientModule = module {
     singleOf(BingoCardPlacementScreen::Factory)
     singleOf(::BingoHudController) withOptions { createdAtStart() }
     singleOf(::BingoCardImageController) withOptions { createdAtStart() }
+    singleOf(::ItemDifficultyOverlayService) withOptions { createdAtStart() }
 
     singleOf(::SoundService)
     singleOf(::ClientSounds) withOptions { createdAtStart() }

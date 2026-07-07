@@ -81,6 +81,7 @@ internal class GameMessageService(
             team = team.key,
             image = message.image.takeIf { !isItemHidden } ?: CardTileImage.EMPTY,
             imageList = message.imageList.takeIf { !isItemHidden }.orEmpty(),
+            itemTier = message.itemTier.takeIf { !isItemHidden },
             decoration = message.decoration.takeIf { !isItemHidden },
             messageType = ScoreMessagePacket.MessageType.ITEM_SCORED,
             message = chatMessage,

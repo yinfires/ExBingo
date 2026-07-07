@@ -7,6 +7,7 @@ import me.jfenn.bingo.client.platform.IClient
 import me.jfenn.bingo.client.platform.renderer.IDrawService
 import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.config.CardAlignment
+import me.jfenn.bingo.common.map.CardTile
 import me.jfenn.bingo.common.map.rgba
 import me.jfenn.bingo.common.scoring.ScoreMessagePacket
 import me.jfenn.bingo.common.utils.div
@@ -125,7 +126,10 @@ internal class BingoMessageRenderer(
                 message.packet.image,
                 message.packet.imageList,
                 message.packet.decoration,
-                itemX, itemY
+                itemTier = message.packet.itemTier,
+                suppressItemFallback = message.packet.itemTier != null || message.packet.decoration == CardTile.Decoration.ADVANCEMENT,
+                itemX = itemX,
+                itemY = itemY,
             )
             cardTileRenderer.renderTileDecorations(drawService, message.packet.decoration, itemX, itemY)
         } else {

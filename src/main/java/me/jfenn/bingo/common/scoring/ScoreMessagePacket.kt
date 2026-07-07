@@ -34,6 +34,7 @@ data class ScoreMessagePacket(
                 tile = CardTile(
                     image = gameMessagePacket.image,
                     imageList = gameMessagePacket.imageList,
+                    itemTier = gameMessagePacket.itemTier,
                     decoration = gameMessagePacket.decoration,
                 ),
                 messageType = gameMessagePacket.messageType,
@@ -49,6 +50,7 @@ data class ScoreMessagePacket(
             team = BingoTeamKey(""),
             image = tile?.image ?: CardTileImage.EMPTY,
             imageList = tile?.imageList.orEmpty(),
+            itemTier = tile?.itemTier,
             decoration = tile?.decoration,
             messageType = messageType ?: MessageType.ITEM_SCORED,
             message = message,

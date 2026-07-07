@@ -5,8 +5,13 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
+    "AdvancementTabDifficultyOverlayMixin",
+    "AdvancementToastDifficultyOverlayMixin",
+    "AdvancementWidgetDifficultyOverlayMixin",
+    "BetterAdvancementWidgetDifficultyOverlayMixin",
     "CreateWorldScreenAccessor",
     "DualStackForceIPv4Mixin",
+    "GuiGraphicsItemDifficultyOverlayMixin",
     "LanServerDetectorMixin",
     "LanServerPingerMixin",
     "MinecraftClientFramebuffer"

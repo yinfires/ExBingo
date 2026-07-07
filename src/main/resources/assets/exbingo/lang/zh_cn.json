@@ -255,6 +255,8 @@
   "exbingo.configuration.client.hud.card_team_outlines.tooltip": "其他队伍完成棋盘格子时绘制边框。",
   "exbingo.configuration.client.hud.show_multiple_cards": "显示多张棋盘",
   "exbingo.configuration.client.hud.show_multiple_cards.tooltip": "空间允许时尝试在 HUD 中绘制所有可用棋盘。",
+  "exbingo.configuration.client.hud.show_item_difficulties": "显示物品与进度难度",
+  "exbingo.configuration.client.hud.show_item_difficulties.tooltip": "为拥有 ExBingo 难度分级的物品与进度图标绘制 S/A/B/C/D 字母。",
   "exbingo.configuration.client.hud.hide_on_f3": "F3 时隐藏",
   "exbingo.configuration.client.hud.hide_on_f3.tooltip": "调试屏幕打开时隐藏 Bingo 棋盘 HUD。",
   "exbingo.configuration.client.hud.hide_on_chat": "聊天时隐藏",

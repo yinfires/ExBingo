@@ -823,6 +823,14 @@ object NeoForgeConfigBridge {
             { defaultConfig().client.showMultipleCards },
             entries,
         )
+        val showItemDifficulties = builder.defineBoolean(
+            "client.showItemDifficulties",
+            clientKey("hud", "show_item_difficulties"),
+            "Draws S/A/B/C/D difficulty letters on item and advancement icons that have an ExBingo tier.",
+            "showItemDifficulties",
+            { defaultConfig().client.showItemDifficulties },
+            entries,
+        )
         val hideOnF3 = builder.defineBoolean(
             "client.hideOnF3",
             clientKey("hud", "hide_on_f3"),
@@ -906,6 +914,7 @@ object NeoForgeConfigBridge {
                 cardOverlap = cardOverlap.get(),
                 cardTeamOutlines = cardTeamOutlines.get(),
                 showMultipleCards = showMultipleCards.get(),
+                showItemDifficulties = showItemDifficulties.get(),
                 hideOnF3 = hideOnF3.get(),
                 hideOnChat = hideOnChat.get(),
                 messageFromOtherTeams = messageFromOtherTeams.get(),
@@ -925,6 +934,7 @@ object NeoForgeConfigBridge {
             cardOverlap.set(config.cardOverlap)
             cardTeamOutlines.set(config.cardTeamOutlines)
             showMultipleCards.set(config.showMultipleCards)
+            showItemDifficulties.set(config.showItemDifficulties)
             hideOnF3.set(config.hideOnF3)
             hideOnChat.set(config.hideOnChat)
             messageFromOtherTeams.set(config.messageFromOtherTeams)

@@ -1,6 +1,7 @@
 package me.jfenn.bingo.client.common.packet
 
 import me.jfenn.bingo.client.platform.IClientNetworking
+import me.jfenn.bingo.common.card.tierlist.ItemDifficultyOverlayPacket
 import me.jfenn.bingo.common.config.PlayerSettings
 import me.jfenn.bingo.common.game.GameOverPacket
 import me.jfenn.bingo.common.game.GameStatusPacket
@@ -57,6 +58,7 @@ internal class ClientPacketEvents(
     val timerV1 = clientNetworking.registerS2C(TimerPacket.V1)
     val countdownV1 = clientNetworking.registerS2C(CountdownPacket.V1)
     val tooltipV1 = clientNetworking.registerS2C(TooltipPacket.V1)
+    val itemDifficultyOverlayV1 = clientNetworking.registerS2C(ItemDifficultyOverlayPacket.V1)
 
 
     val readyUpdateV1 = clientNetworking.registerS2C(ReadyUpdatePacket.V1)
