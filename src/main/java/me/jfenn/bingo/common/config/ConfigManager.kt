@@ -47,7 +47,7 @@ class ConfigManager(
     override fun <T: Any> read(type: KType, file: String): T {
         @Suppress("UNCHECKED_CAST")
         val serializer = serializer(type) as KSerializer<T>
-        return try {
+        val value = try {
             inputStream(file).use { json.decodeFromUtf8Stream(serializer, it) }
         } catch (e: NoSuchFileException) {
             null
@@ -57,6 +57,12 @@ class ConfigManager(
         } ?: run {
             json.decodeFromString(serializer, "{}").also { write(type, file, it) }
         }
+        @Suppress("UNCHECKED_CAST")
+        return if (file == "$MOD_ID_BINGO/config.json" && value is BingoConfig) {
+            NeoForgeConfigBridge.applyLoadedSpecs(value) as T
+        } else {
+            value
+        }
     }
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -65,6 +71,9 @@ class ConfigManager(
         val serializer = serializer(type) as KSerializer<T>
         outputStream(file).use {
             json.encodeToStream(serializer, config, it)
+        }
+        if (file == "$MOD_ID_BINGO/config.json" && config is BingoConfig) {
+            NeoForgeConfigBridge.updateLoadedSpecsFrom(config)
         }
     }
 

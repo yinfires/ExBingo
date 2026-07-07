@@ -2,6 +2,8 @@ package me.jfenn.bingo.common.config
 
 import kotlinx.serialization.Serializable
 import me.jfenn.bingo.generated.StringKey
+import net.minecraft.network.chat.Component
+import net.neoforged.neoforge.common.TranslatableEnum
 
 @Serializable
 data class ClientConfig(
@@ -29,14 +31,20 @@ data class ClientConfig(
 
 }
 
-enum class CardAlignment(val x: Int, val y: Int, val string: StringKey) {
+enum class CardAlignment(val x: Int, val y: Int, val string: StringKey) : TranslatableEnum {
     TOP_LEFT(0, 0, StringKey.ConfigCardAlignmentTopLeft),
     TOP_RIGHT(1, 0, StringKey.ConfigCardAlignmentTopRight),
     BOTTOM_LEFT(0, 1, StringKey.ConfigCardAlignmentBottomLeft),
     BOTTOM_RIGHT(1, 1, StringKey.ConfigCardAlignmentBottomRight),
+    ;
+
+    override fun getTranslatedName(): Component = Component.translatable(string.key)
 }
 
-enum class CardOverlap(val z: Int, val string: StringKey) {
+enum class CardOverlap(val z: Int, val string: StringKey) : TranslatableEnum {
     ABOVE(800, StringKey.ConfigCardOverlapAbove),
     UNDERNEATH(-800, StringKey.ConfigCardOverlapUnderneath),
+    ;
+
+    override fun getTranslatedName(): Component = Component.translatable(string.key)
 }

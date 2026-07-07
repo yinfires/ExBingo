@@ -1,10 +1,12 @@
 package me.jfenn.bingo;
 
 import net.neoforged.fml.ModList;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.api.distmarker.Dist;
+import me.jfenn.bingo.common.config.NeoForgeConfigBridge;
 import me.jfenn.bingo.impl.networking.NeoForgePacketRegistry;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import org.slf4j.Logger;
@@ -17,10 +19,12 @@ public final class ExBingoMod {
     private static final Logger LOGGER = LoggerFactory.getLogger("ExBingo");
     private static IEventBus modEventBus;
 
-    public ExBingoMod(IEventBus modEventBus) {
+    public ExBingoMod(IEventBus modEventBus, ModContainer modContainer) {
         ExBingoMod.modEventBus = modEventBus;
         modEventBus.addListener(RegisterPayloadHandlersEvent.class, NeoForgePacketRegistry.INSTANCE::registerPayloads);
+        NeoForgeConfigBridge.INSTANCE.registerConfigs(modContainer, modEventBus);
         if (FMLEnvironment.dist == Dist.CLIENT) {
+            registerClientExtensionPoints(modContainer);
             registerClientModBusListeners(modEventBus);
         }
 
@@ -50,6 +54,15 @@ public final class ExBingoMod {
 
     public static IEventBus getModEventBus() {
         return modEventBus;
+    }
+
+    private static void registerClientExtensionPoints(ModContainer modContainer) {
+        try {
+            Class<?> configScreen = Class.forName("me.jfenn.bingo.client.impl.NeoForgeClientConfigScreen");
+            configScreen.getMethod("register", ModContainer.class).invoke(null, modContainer);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Unable to register ExBingo client extension points", e);
+        }
     }
 
     private static void registerClientModBusListeners(IEventBus modEventBus) {
