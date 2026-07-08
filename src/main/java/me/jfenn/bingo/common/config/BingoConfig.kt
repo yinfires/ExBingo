@@ -54,6 +54,9 @@ data class BingoConfig(
     var teamChestCountsForObjectives: Boolean = true,
     var teamTeleportEnabled: Boolean = true,
 
+    // overrides vanilla Bottle o' Enchanting XP drops when enabled
+    val experienceBottleXp: ExperienceBottleXpConfig = ExperienceBottleXpConfig(),
+
     // gives players a "memento" card after the game ends (if isLobbyMode=false)
     val giveMementoInSurvival: Boolean = true,
 
@@ -130,3 +133,10 @@ data class BingoConfig(
         )
     }
 }
+
+@Serializable
+data class ExperienceBottleXpConfig(
+    val enabled: Boolean = true,
+    val min: Int = 100,
+    val max: Int = 500,
+)

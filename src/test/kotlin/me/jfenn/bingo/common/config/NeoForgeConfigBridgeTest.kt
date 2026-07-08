@@ -76,6 +76,14 @@ class NeoForgeConfigBridgeTest {
         )
     }
 
+    @Test
+    fun `experience bottle xp override defaults to 100 through 500`() {
+        assertEquals(
+            ExperienceBottleXpConfig(enabled = true, min = 100, max = 500),
+            BingoConfig().experienceBottleXp,
+        )
+    }
+
     private fun collectConfigLeaves(type: KClass<*>, prefix: String = ""): List<String> {
         val constructor = type.primaryConstructor
             ?: error("Config type ${type.simpleName} must have a primary constructor")
@@ -102,6 +110,7 @@ class NeoForgeConfigBridgeTest {
     private val nestedConfigTypes = setOf<KClass<*>>(
         AutoTierConfig::class,
         ChatConfig::class,
+        ExperienceBottleXpConfig::class,
         ClientConfig::class,
         PlayerSettings::class,
         ServerConfig::class,

@@ -7,6 +7,7 @@ import kotlinx.serialization.serializer
 import me.jfenn.bingo.common.MOD_ID_BINGO
 import me.jfenn.bingo.common.utils.decodeFromUtf8Stream
 import me.jfenn.bingo.common.utils.json
+import me.jfenn.bingo.mixinhandler.ExperienceBottleXpHelper
 import me.jfenn.bingo.platform.IModEnvironment
 import me.jfenn.bingo.platform.config.IConfigManager
 import org.apache.commons.io.IOUtils
@@ -59,7 +60,8 @@ class ConfigManager(
         }
         @Suppress("UNCHECKED_CAST")
         return if (file == "$MOD_ID_BINGO/config.json" && value is BingoConfig) {
-            NeoForgeConfigBridge.applyLoadedSpecs(value) as T
+            NeoForgeConfigBridge.applyLoadedSpecs(value)
+                .also(ExperienceBottleXpHelper::updateFrom) as T
         } else {
             value
         }
@@ -73,6 +75,7 @@ class ConfigManager(
             json.encodeToStream(serializer, config, it)
         }
         if (file == "$MOD_ID_BINGO/config.json" && config is BingoConfig) {
+            ExperienceBottleXpHelper.updateFrom(config)
             NeoForgeConfigBridge.updateLoadedSpecsFrom(config)
         }
     }

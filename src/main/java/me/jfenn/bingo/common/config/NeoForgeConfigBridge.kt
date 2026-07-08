@@ -7,6 +7,7 @@ import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
 import me.jfenn.bingo.common.card.tierlist.TierLabel
 import me.jfenn.bingo.common.utils.decodeFromUtf8Stream
 import me.jfenn.bingo.common.utils.json
+import me.jfenn.bingo.mixinhandler.ExperienceBottleXpHelper
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.config.ModConfig
@@ -132,6 +133,7 @@ object NeoForgeConfigBridge {
     private fun syncLoadedSpecsToJson(configDir: Path) {
         val current = readLegacyConfig(configDir)
         val updated = applyLoadedSpecs(current)
+        ExperienceBottleXpHelper.updateFrom(updated)
         writeLegacyConfig(configDir, updated)
     }
 
@@ -373,6 +375,40 @@ object NeoForgeConfigBridge {
             "teamTeleportEnabled",
             { defaultConfig().teamTeleportEnabled },
             entries,
+        )
+
+        init {
+            builder.pop()
+            builder.pushSection("gameplay", "Vanilla gameplay tweaks.", commonSectionKey("gameplay"), sections)
+        }
+
+        val experienceBottleXpEnabled = builder.defineBoolean(
+            "experienceBottleXp.enabled",
+            commonKey("gameplay", "experience_bottle_xp_enabled"),
+            "Overrides Bottle o' Enchanting XP drops with a configurable random range.",
+            "experienceBottleXp.enabled",
+            { defaultConfig().experienceBottleXp.enabled },
+            entries,
+        )
+        val experienceBottleXpMin = builder.defineInt(
+            "experienceBottleXp.min",
+            commonKey("gameplay", "experience_bottle_xp_min"),
+            "Minimum XP awarded by one Bottle o' Enchanting when the override is enabled.",
+            "experienceBottleXp.min",
+            { defaultConfig().experienceBottleXp.min },
+            entries,
+            min = 0,
+            max = 100000,
+        )
+        val experienceBottleXpMax = builder.defineInt(
+            "experienceBottleXp.max",
+            commonKey("gameplay", "experience_bottle_xp_max"),
+            "Maximum XP awarded by one Bottle o' Enchanting when the override is enabled.",
+            "experienceBottleXp.max",
+            { defaultConfig().experienceBottleXp.max },
+            entries,
+            min = 0,
+            max = 100000,
         )
 
         init {
@@ -693,6 +729,11 @@ object NeoForgeConfigBridge {
                 teamChestEnabled = teamChestEnabled.get(),
                 teamChestCountsForObjectives = teamChestCountsForObjectives.get(),
                 teamTeleportEnabled = teamTeleportEnabled.get(),
+                experienceBottleXp = ExperienceBottleXpConfig(
+                    enabled = experienceBottleXpEnabled.get(),
+                    min = experienceBottleXpMin.get(),
+                    max = experienceBottleXpMax.get(),
+                ),
                 startWhenReadySeconds = startWhenReadySeconds.get().takeUnless { it == DISABLED_SECONDS },
                 startWhenReadyWaitsForTeams = startWhenReadyWaitsForTeams.get(),
                 startWhenReadyWaitsForFirstVote = startWhenReadyWaitsForFirstVote.get(),
@@ -754,6 +795,9 @@ object NeoForgeConfigBridge {
             teamChestEnabled.set(config.teamChestEnabled)
             teamChestCountsForObjectives.set(config.teamChestCountsForObjectives)
             teamTeleportEnabled.set(config.teamTeleportEnabled)
+            experienceBottleXpEnabled.set(config.experienceBottleXp.enabled)
+            experienceBottleXpMin.set(config.experienceBottleXp.min)
+            experienceBottleXpMax.set(config.experienceBottleXp.max)
             startWhenReadySeconds.set(config.startWhenReadySeconds ?: DISABLED_SECONDS)
             startWhenReadyWaitsForTeams.set(config.startWhenReadyWaitsForTeams)
             startWhenReadyWaitsForFirstVote.set(config.startWhenReadyWaitsForFirstVote)
