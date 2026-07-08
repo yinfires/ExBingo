@@ -64,10 +64,11 @@ internal class SpawnPreloadingController(
 
             val chunks = state.getRegisteredTeams()
                 .mapNotNull { it.spawnpoint }
-                .flatMap { (x, z) ->
+                .flatMap { spawnpoint ->
+                    val (chunkX, chunkZ) = spawnpoint.toChunkPos()
                     chunkOffsets
                         .map { (offsetX, offsetZ) ->
-                            Pair(x + offsetX, z + offsetZ)
+                            Pair(chunkX + offsetX, chunkZ + offsetZ)
                         }
                 }
                 .toSet()

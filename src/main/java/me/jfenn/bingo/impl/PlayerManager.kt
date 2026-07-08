@@ -552,6 +552,7 @@ class PlayerHandle(
         )
         player.connection.send(ClientboundPlayerAbilitiesPacket(player.abilities))
         playerList.sendPlayerPermissionLevel(player)
+        playerList.sendLevelInfo(player, level)
         playerList.sendAllPlayerInfo(player)
         playerList.sendActivePlayerEffects(player)
         net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(player)

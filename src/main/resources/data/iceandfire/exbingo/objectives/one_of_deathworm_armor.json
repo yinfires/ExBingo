@@ -1,0 +1,24 @@
+{
+  "type": "one_of",
+  "display": {
+    "name": {
+      "translate": "bingo.objective.iceandfire.one_of_deathworm_armor",
+      "fallback": "Any Death Worm Armor"
+    },
+    "item": "iceandfire:deathworm_red_helmet"
+  },
+  "objectives": [
+    "iceandfire:deathworm_red_helmet",
+    "iceandfire:deathworm_red_chestplate",
+    "iceandfire:deathworm_red_leggings",
+    "iceandfire:deathworm_red_boots",
+    "iceandfire:deathworm_white_helmet",
+    "iceandfire:deathworm_white_chestplate",
+    "iceandfire:deathworm_white_leggings",
+    "iceandfire:deathworm_white_boots",
+    "iceandfire:deathworm_yellow_helmet",
+    "iceandfire:deathworm_yellow_chestplate",
+    "iceandfire:deathworm_yellow_leggings",
+    "iceandfire:deathworm_yellow_boots"
+  ]
+}

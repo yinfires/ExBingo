@@ -26,6 +26,24 @@ class DedicatedServerPackConfigDefaultsTest {
     }
 
     @Test
+    fun `keeps bundle feature pack below mod data so mod recipes can override it`() {
+        val config = DataPackConfig(listOf("vanilla", "mod_data", "bundle"), emptyList())
+
+        val adjusted = DedicatedServerPackConfigDefaults.forceBundleFeaturePack(config)
+
+        assertEquals(listOf("vanilla", "bundle", "mod_data"), adjusted.enabled)
+    }
+
+    @Test
+    fun `keeps bundle feature pack below bingo world datapack so client recipes can override it`() {
+        val config = DataPackConfig(listOf("vanilla", "mod_data", "file/bingo.zip"), emptyList())
+
+        val adjusted = DedicatedServerPackConfigDefaults.forceBundleFeaturePack(config)
+
+        assertEquals(listOf("vanilla", "bundle", "mod_data", "file/bingo.zip"), adjusted.enabled)
+    }
+
+    @Test
     fun `removes bundle from disabled packs when server properties explicitly disable it`() {
         val config = DataPackConfig(listOf("vanilla"), listOf("bundle"))
 

@@ -1,0 +1,19 @@
+{
+  "type": "one_of",
+  "display": {
+    "name": {
+      "translate": "bingo.objective.iceandfire.one_of_sea_serpent_scale",
+      "fallback": "Any Sea Serpent Scale"
+    },
+    "item": "iceandfire:sea_serpent_scales_blue"
+  },
+  "objectives": [
+    "iceandfire:sea_serpent_scales_blue",
+    "iceandfire:sea_serpent_scales_bronze",
+    "iceandfire:sea_serpent_scales_deepblue",
+    "iceandfire:sea_serpent_scales_green",
+    "iceandfire:sea_serpent_scales_purple",
+    "iceandfire:sea_serpent_scales_red",
+    "iceandfire:sea_serpent_scales_teal"
+  ]
+}

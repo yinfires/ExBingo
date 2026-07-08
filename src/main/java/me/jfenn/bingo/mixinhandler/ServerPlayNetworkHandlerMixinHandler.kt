@@ -8,6 +8,7 @@ object ServerPlayNetworkHandlerMixinHandler {
 
     private val playerMap = ConcurrentHashMap<Int, Instant>()
     private val chunkBatchMap = ConcurrentHashMap<Int, Instant>()
+    private val loadingStartMap = ConcurrentHashMap<Int, Instant>()
 
     fun getLastPlayerMovement(player: ServerPlayer): Instant? {
         val id = System.identityHashCode(player)
@@ -33,8 +34,18 @@ object ServerPlayNetworkHandlerMixinHandler {
         chunkBatchMap[id] = Instant.now()
     }
 
+    fun getLoadingStarted(player: ServerPlayer): Instant? {
+        val id = System.identityHashCode(player)
+        return loadingStartMap[id]
+    }
+
+    fun markLoadingStarted(player: ServerPlayer) {
+        markLoadingStarted(listOf(player))
+    }
+
     /**
-     * Clear the recorded movement / chunk-batch timestamps for the given players.
+     * Clear the recorded movement / chunk-batch timestamps for the given players and remember
+     * when their current terrain-loading attempt began.
      *
      * These maps are never pruned on their own and are keyed by the player's identity hash, so
      * timestamps recorded in a previous round (or while the player was idling in the lobby) can
@@ -42,13 +53,16 @@ object ServerPlayNetworkHandlerMixinHandler {
      * "a chunk-batch ack arrived AFTER loading started"; a stale timestamp left over from the
      * lobby/previous game can satisfy that check before the fresh spawn terrain has actually been
      * sent, dropping the client into an unloaded world (void / can't break blocks). Resetting the
-     * signals when a new LOADING phase begins forces the gate to wait for a genuinely new ack.
+     * signals when a new LOADING phase begins, and again after a recovery teleport is sent,
+     * forces the gate to wait for a genuinely new ack.
      */
-    fun resetLoadingSignals(players: Iterable<ServerPlayer>) {
+    fun markLoadingStarted(players: Iterable<ServerPlayer>) {
+        val now = Instant.now()
         for (player in players) {
             val id = System.identityHashCode(player)
             playerMap.remove(id)
             chunkBatchMap.remove(id)
+            loadingStartMap[id] = now
         }
     }
 }

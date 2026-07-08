@@ -1,6 +1,12 @@
 {
     "replace": false,
     "S": [
+        "cataclysm:chorus_stem",
+        "cataclysm:chorus_planks",
+        "cataclysm:chorus_stairs",
+        "cataclysm:chorus_slab",
+        "cataclysm:chorus_fence",
+        "cataclysm:chorus_trapdoor",
         "cataclysm:the_annihilator",
         "cataclysm:the_immolator",
         "cataclysm:the_incinerator",
@@ -152,18 +158,12 @@
         "cataclysm:stone_tile_wall",
         "cataclysm:stone_pillar",
         "cataclysm:blackstone_pillar",
-        "cataclysm:chorus_planks",
-        "cataclysm:chorus_stairs",
-        "cataclysm:chorus_slab",
-        "cataclysm:chorus_fence",
-        "cataclysm:chorus_trapdoor",
         "cataclysm:prismarine_brick_wall",
         "cataclysm:prismarine_brick_fence",
         "cataclysm:quartz_brick_wall",
         "cataclysm:goddess_statue"
     ],
     "D": [
-        "cataclysm:chorus_stem",
         "cataclysm:dungeon_block"
     ],
     "groups": [

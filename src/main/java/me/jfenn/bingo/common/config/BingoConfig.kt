@@ -104,6 +104,10 @@ data class BingoConfig(
     // only applies to dedicated server
     val server: ServerConfig = ServerConfig(),
 ) {
+    init {
+        difficultyPresets = TierLabel.normalizeDefaultDifficultyPresetOrder(difficultyPresets)
+    }
+
     companion object {
         val DEFAULT_BOARD_SOURCE_WEIGHTS = linkedMapOf(
             "advancements" to 1.0,

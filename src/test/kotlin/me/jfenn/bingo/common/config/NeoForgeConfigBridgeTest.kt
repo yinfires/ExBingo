@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import me.jfenn.bingo.common.card.autotier.AutoTierConfig
+import me.jfenn.bingo.common.card.tierlist.TierLabel
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.reflect.KClass
@@ -51,6 +52,27 @@ class NeoForgeConfigBridgeTest {
         assertTrue(
             BingoConfig().boardSourceWeights.values.all { it == 1.0 },
             "Default board source weights should all be 1.0.",
+        )
+    }
+
+    @Test
+    fun `default visible difficulty presets use intended order`() {
+        assertEquals(
+            listOf("easy", "medium", "hard", "extreme"),
+            BingoConfig().difficultyPresets.keys.take(4).toList(),
+            "The lobby difficulty menu shows the first four presets.",
+        )
+    }
+
+    @Test
+    fun `legacy alphabetically written difficulty presets normalize back to intended order`() {
+        val legacyAlphabeticalDefaults = TierLabel.DIFFICULTY_PRESETS.entries
+            .sortedBy { it.key }
+            .associate { it.key to it.value }
+
+        assertEquals(
+            TierLabel.DIFFICULTY_PRESETS.keys.toList(),
+            BingoConfig(difficultyPresets = legacyAlphabeticalDefaults).difficultyPresets.keys.toList(),
         )
     }
 

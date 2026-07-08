@@ -27,7 +27,7 @@ data class BlockPosition(
 
     fun toBlockPos() = BlockPos(x, y, z)
 
-    fun toChunkPos() = Pair(x / 16, y / 16)
+    fun toChunkPos() = Pair(Math.floorDiv(x, 16), Math.floorDiv(z, 16))
 
     fun toVector3d() = Vector3d(x.toDouble(), y.toDouble(), z.toDouble())
 

@@ -381,7 +381,8 @@ internal class PlayerController(
             // Don't forceReset if resumed from POSTGAME (Keep Playing)
             val forceReset = prevState != GameState.POSTGAME
 
-            for (player in playerManager.getPlayers()) {
+            val players = playerManager.getPlayers()
+            for (player in players) {
                 if (state.isLobbyMode) {
                     updateGameMode(player, forceReset = forceReset)
                 }
@@ -394,8 +395,12 @@ internal class PlayerController(
             // Give it here explicitly instead. Skip when resuming from POSTGAME (Keep Playing),
             // as GameResumeService has already restored each player's saved inventory.
             if (state.isLobbyMode && prevState != GameState.POSTGAME) {
-                val players = playerManager.getPlayers().filter { teamService.isPlaying(it) }
-                if (players.isNotEmpty()) spawnService.giveSpawnEquipment(players)
+                val playingPlayers = players.filter { teamService.isPlaying(it) }
+                if (playingPlayers.isNotEmpty()) spawnService.giveSpawnEquipment(playingPlayers)
+            }
+
+            if (state.isLobbyMode) {
+                players.forEach { it.resyncClientState(syncPosition = true) }
             }
         }
 

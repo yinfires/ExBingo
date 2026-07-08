@@ -1,0 +1,24 @@
+{
+  "type": "one_of",
+  "display": {
+    "name": {
+      "translate": "bingo.objective.iceandfire.one_of_dragon_scale_block",
+      "fallback": "Any Dragon Scale Block"
+    },
+    "item": "iceandfire:dragonscale_red"
+  },
+  "objectives": [
+    "iceandfire:dragonscale_red",
+    "iceandfire:dragonscale_green",
+    "iceandfire:dragonscale_bronze",
+    "iceandfire:dragonscale_gray",
+    "iceandfire:dragonscale_white",
+    "iceandfire:dragonscale_blue",
+    "iceandfire:dragonscale_sapphire",
+    "iceandfire:dragonscale_silver",
+    "iceandfire:dragonscale_electric",
+    "iceandfire:dragonscale_amethyst",
+    "iceandfire:dragonscale_copper",
+    "iceandfire:dragonscale_black"
+  ]
+}

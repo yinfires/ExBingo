@@ -1,16 +1,15 @@
 package me.jfenn.bingo.client.world
 
-import com.google.common.collect.ImmutableList
 import me.jfenn.bingo.client.impl.accessor
 import me.jfenn.bingo.common.BINGO_WORLD_PREFIX
 import me.jfenn.bingo.common.datapack.LobbyWorldService
+import me.jfenn.bingo.mixinhandler.DedicatedServerPackConfigDefaults
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.ConfirmScreen
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen
 import net.minecraft.network.chat.contents.TranslatableContents
 import net.minecraft.world.level.DataPackConfig
 import net.minecraft.world.level.WorldDataConfiguration
-import net.minecraft.world.flag.FeatureFlags
 import net.neoforged.neoforge.client.event.ScreenEvent
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
 import net.neoforged.neoforge.common.NeoForge
@@ -113,26 +112,17 @@ class BingoWorldController(
                     log.error("Bingo datapack installation has failed! This will probably cause a crash.")
                 }
 
-                // actually enable the bingo lobby datapack
-                // Also select the built-in feature pack that provides the Bundle experiment, so the
-                // collection bag (bundle) is enabled by default for bingo worlds. We must enable the
-                // feature via its data pack (PackSource.FEATURE) rather than by setting
-                // WorldDataConfiguration.enabledFeatures directly: applyNewPackConfig loads the world
-                // with initMode=true, which makes MinecraftServer.configurePackRepository discard the
-                // passed-in enabledFeatures and derive them solely from the selected packs' requested
-                // features. Selecting the bundle feature pack is exactly what the vanilla Experiments
-                // screen does, and makes the world's enabledFeatures actually contain BUNDLE (so JEI
-                // no longer hides the bundle item).
-                val bundleFeaturePackIds = pair.second.availablePacks
-                    .filter { it.requestedFeatures.contains(FeatureFlags.BUNDLE) }
-                    .map { it.id }
-                pair.second.setSelected((pair.second.selectedIds + DATAPACK_ID + bundleFeaturePackIds).reversed())
-
-                val enabled = ImmutableList.copyOf(pair.second.selectedIds)
-                val disabled = pair.second.availableIds.filter { !enabled.contains(it) }
-                val dataConfiguration = WorldDataConfiguration(
-                    DataPackConfig(enabled, disabled),
-                    screen.uiState.settings.dataConfiguration().enabledFeatures()
+                // Actually enable the bingo lobby datapack. Also select the built-in feature pack
+                // that provides bundles, but keep it immediately after vanilla in the enabled list
+                // so mod_data and the lobby datapack can override its rabbit-hide recipe.
+                val enabledBeforeBundle = (pair.second.selectedIds + DATAPACK_ID).distinct()
+                val disabledBeforeBundle = pair.second.availableIds.filter { it !in enabledBeforeBundle }
+                val dataConfiguration = DedicatedServerPackConfigDefaults.forceBundleFeaturePack(
+                    pair.second,
+                    WorldDataConfiguration(
+                        DataPackConfig(enabledBeforeBundle, disabledBeforeBundle),
+                        screen.uiState.settings.dataConfiguration().enabledFeatures()
+                    )
                 )
 
                 worldState.state = ScreenState.OpenBingoWorld

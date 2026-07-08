@@ -1168,7 +1168,6 @@ object NeoForgeConfigBridge {
 
     private fun difficultyPresetList(presets: Map<String, List<Int>>): List<String> =
         presets.entries
-            .sortedBy { it.key }
             .map { (name, distribution) -> "$name=${distribution.joinToString(",")}" }
 
     private fun parseDifficultyPresetList(values: List<String>): Map<String, List<Int>> =

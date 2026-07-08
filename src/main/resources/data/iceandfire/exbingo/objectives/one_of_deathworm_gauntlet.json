@@ -1,0 +1,15 @@
+{
+  "type": "one_of",
+  "display": {
+    "name": {
+      "translate": "bingo.objective.iceandfire.one_of_deathworm_gauntlet",
+      "fallback": "Any Death Worm Gauntlet"
+    },
+    "item": "iceandfire:deathworm_gauntlet_red"
+  },
+  "objectives": [
+    "iceandfire:deathworm_gauntlet_red",
+    "iceandfire:deathworm_gauntlet_white",
+    "iceandfire:deathworm_gauntlet_yellow"
+  ]
+}

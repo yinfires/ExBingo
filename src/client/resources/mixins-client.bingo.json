@@ -15,7 +15,8 @@
     "GuiGraphicsItemDifficultyOverlayMixin",
     "LanServerDetectorMixin",
     "LanServerPingerMixin",
-    "MinecraftClientFramebuffer"
+    "MinecraftClientFramebuffer",
+    "SimpleVoiceChatRenderEventsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

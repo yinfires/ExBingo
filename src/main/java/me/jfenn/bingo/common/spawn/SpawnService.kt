@@ -6,10 +6,12 @@ import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.options.BingoOptions
 import me.jfenn.bingo.common.options.coerceSpawnDimension
 import me.jfenn.bingo.common.state.BingoState
+import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.team.BingoTeam
 import me.jfenn.bingo.common.team.TeamService
 import me.jfenn.bingo.impl.collectEntityChunkLifecycleDiagnostics
 import me.jfenn.bingo.impl.isEntityChunkLifecycleHealthy
+import me.jfenn.bingo.mixinhandler.ServerPlayNetworkHandlerMixinHandler
 import me.jfenn.bingo.platform.IExecutors
 import me.jfenn.bingo.platform.IPlayerHandle
 import me.jfenn.bingo.platform.IServerWorld
@@ -146,6 +148,14 @@ internal class SpawnService(
     }
 
     fun teleportPlayer(player: IPlayerHandle) {
+        teleportPlayer(player, force = false)
+    }
+
+    fun forceTeleportPlayer(player: IPlayerHandle) {
+        teleportPlayer(player, force = true)
+    }
+
+    private fun teleportPlayer(player: IPlayerHandle, force: Boolean) {
         if (!state.isLobbyMode) {
             log.error("[SpawnService] Attempted teleportPlayer, but isLobbyMode=false!")
             return
@@ -173,18 +183,56 @@ internal class SpawnService(
             sendMessage = false,
         )
 
-        // if the player already has the exact block position, don't teleport them again
-        val needsTeleport = player.serverWorld != world || player.blockPos != spawn
-        if (!needsTeleport) return
+        // If the player already has the exact block position, don't teleport them again unless
+        // this is a recovery nudge for a client that has not acknowledged spawn terrain yet.
+        val needsTeleport = force || player.serverWorld != world || player.blockPos != spawn
+        if (!needsTeleport) {
+            markTerrainLoadingStarted(player)
+            return
+        }
 
         // random offset for each player to prevent collision grouping
-        player.teleport(world, spawn.toVector3d().add(Random.nextDouble(), Random.nextDouble(), Random.nextDouble()), player.yaw, player.pitch)
+        val pos = spawn.toVector3d().add(Random.nextDouble(), Random.nextDouble(), Random.nextDouble())
+        if (force) {
+            player.forceTeleport(world, pos, player.yaw, player.pitch)
+        } else {
+            player.teleport(world, pos, player.yaw, player.pitch)
+        }
+        markTerrainLoadingStarted(player)
         logPlayerAttachmentAfterTeleport(
-            stage = "teleportPlayer",
+            stage = if (force) "forceTeleportPlayer" else "teleportPlayer",
             player = player,
             expectedWorld = world,
-            force = false,
+            force = force,
         )
+    }
+
+    private fun markTerrainLoadingStarted(player: IPlayerHandle) {
+        if (state.state == GameState.LOADING) {
+            ServerPlayNetworkHandlerMixinHandler.markLoadingStarted(player.player)
+        }
+    }
+
+    fun isPlayerSpawnChunkReady(player: IPlayerHandle): Boolean {
+        val expectedWorld = getSpawnDimension().world
+        val playerWorld = player.serverWorld
+        if (playerWorld !== expectedWorld) return false
+
+        val playerEntity = player.player
+        val blockPos = playerEntity.blockPosition()
+        val chunkPos = playerEntity.chunkPosition()
+        val chunkLong = ChunkPos.asLong(blockPos)
+        val distanceManager = playerWorld.chunkSource.chunkMap.getDistanceManager()
+        val entityLifecycle = collectEntityChunkLifecycleDiagnostics(playerWorld, chunkLong)
+        return playerWorld.players().contains(playerEntity) &&
+            playerWorld.getEntity(playerEntity.uuid) === playerEntity &&
+            playerWorld.areEntitiesLoaded(chunkLong) &&
+            playerWorld.isPositionEntityTicking(blockPos) &&
+            playerWorld.shouldTickBlocksAt(chunkLong) &&
+            distanceManager.inEntityTickingRange(chunkLong) &&
+            distanceManager.inBlockTickingRange(chunkLong) &&
+            playerWorld.chunkSource.chunkMap.getPlayers(chunkPos, false).contains(playerEntity) &&
+            isEntityChunkLifecycleHealthy(entityLifecycle.loadStatus, entityLifecycle.visibility)
     }
 
     private fun logPlayerAttachmentAfterTeleport(

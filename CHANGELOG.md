@@ -30,6 +30,71 @@ Each release should include:
 
 ——————
 
+## 1.0.4 - 2026-07-07
+
+- Minecraft: 1.21.1
+- Mod Loader: NeoForge 21.1.234
+- License: LGPL-3.0-only
+- Release Type: Feature update
+
+### 中文更新日志
+
+#### 新增内容
+
+- 新增内置队伍共享箱。对局中同队玩家可使用 `/teamchest` 或 `/tc` 打开 27 格队伍箱；客户端安装 ExBingo 时也可用默认按键 `B` 快速打开。
+- 新增队伍箱物品参与 Bingo 物品目标判定的选项。启用后，队伍箱中的物品可帮助完成物品格，并会在消耗物品模式中按需被扣除。
+- 新增同队传送功能。对局中可使用 `/teamtp <玩家>` 或 `/ttp <玩家>` 传送到同队玩家。
+- 新增队伍功能配置项与开局前切换指令：`teamChestEnabled`、`teamChestCountsForObjectives`、`teamTeleportEnabled`，以及 `/teamchest toggle`、`/teamchest count`、`/tptoggle`。
+- 新增 `boardSourceWeights` 配置，可按棋盘来源调整抽取权重；将某个来源权重设为 `0` 可阻止该来源参与随机抽取。
+
+#### 调整内容
+
+- NeoForge 配置界面现在在连接多人服务器时可读取服务器端 Common 配置；拥有 OP 默认权限的玩家可直接提交修改，非 OP 玩家会看到该部分被禁用。
+- 大厅介绍书新增队伍箱与队伍传送说明，并将多处命令文字改为可点击的命令建议。
+- 调整 Ice and Fire 棋盘分级：下调龙冰刺、火焰炖菜、冰霜炖菜、眼罩和耳塞等目标的档位，使难度更贴近实际获取门槛。
+- 将 Ice and Fire 的龙蛋、龙鳞块、海蟒鳞 / 鳞块、死亡蠕虫甲壳 / 护手 / 盔甲等颜色变体合并为“任意一种”目标，棋盘不会再要求必须获取某个具体颜色。
+- 继续校准 Cataclysm、Twilight Forest、Eternal Starlight 和 The Bumblezone 的棋盘内容，调整部分末地 / 黑暗森林阶段目标档位，并移除战利品袋、花粉堆等不适合作为普通棋盘目标的条目。
+
+#### 修复内容
+
+- 修复高内存占用或区块加载较慢时，开局后出生区域可能只显示地形但实体不渲染、方块破坏后回弹或露出虚空，必须退出重进才能恢复的问题。现在会预加载正确的出生区块，并等待客户端地形接收与服务端区块 / 实体跟踪都就绪后再继续开局。
+- 修复默认难度预设被配置界面写回后可能按字母排序，导致大厅难度菜单显示 `easy / extreme / hard / impossible`、缺少 `medium` 的问题。
+- 修复专用服务器上原版收纳袋功能包启用后，收纳袋配方仍可能被旧兔皮配方或数据包顺序影响的问题；现在内置皮革加线配方，并确保 ExBingo 配方覆盖生效。
+
+#### 兼容性
+
+- 修复与 Simple Voice Chat 的客户端兼容问题：语音连接重置时渲染大厅交互实体不再导致客户端崩溃。
+
+### English Changelog
+
+#### Added
+
+- Added built-in team shared chests. During a round, teammates can open a 27-slot team chest with `/teamchest` or `/tc`; clients with ExBingo installed can also use the default `B` keybind.
+- Added an option for team chest contents to count toward Bingo item objectives. When enabled, chest items can complete item tiles and are consumed as needed in consume-items mode.
+- Added same-team teleporting. During a round, players can use `/teamtp <player>` or `/ttp <player>` to teleport to a teammate.
+- Added team feature config options and pre-game toggle commands: `teamChestEnabled`, `teamChestCountsForObjectives`, `teamTeleportEnabled`, plus `/teamchest toggle`, `/teamchest count`, and `/tptoggle`.
+- Added `boardSourceWeights`, allowing card generation weights to be tuned by board source; setting a source weight to `0` prevents that source from being randomly picked.
+
+#### Changed
+
+- The NeoForge configuration screen can now read the server-side Common config while connected to a multiplayer server. Players with the OP-default permission can submit edits directly, while non-OP players see that section disabled.
+- Added team chest and team teleport information to the lobby intro book, and changed multiple command texts into clickable command suggestions.
+- Adjusted Ice and Fire board tiers by lowering dragon ice spikes, fire stew, frost stew, blindfold, earplugs, and related targets so their tiers better match their real acquisition difficulty.
+- Combined Ice and Fire colored variants such as dragon eggs, dragon scale blocks, sea serpent scales / scale blocks, and death worm chitin / gauntlets / armor into "any of" objectives, so cards no longer require one specific color.
+- Continued tuning the Cataclysm, Twilight Forest, Eternal Starlight, and The Bumblezone boards by adjusting several End / Dark Forest stage tiers and removing loot bags, pollen piles, and similar entries that were not suitable as regular card targets.
+
+#### Fixed
+
+- Fixed game starts under high memory pressure or slow chunk loading where spawn terrain could appear but entities failed to render, broken blocks rubber-banded back or exposed void, and players had to reconnect to recover. Spawn preloading now targets the correct chunks, and the game waits for both client terrain delivery and server-side chunk / entity tracking readiness before continuing.
+- Fixed default difficulty presets being written back alphabetically by the config screen, which could make the lobby difficulty menu show `easy / extreme / hard / impossible` and omit `medium`.
+- Fixed dedicated servers with the vanilla bundle feature pack enabled still being affected by the old rabbit-hide recipe or data-pack ordering. ExBingo now includes the leather-plus-string bundle recipe and ensures that override wins.
+
+#### Compatibility
+
+- Fixed a Simple Voice Chat client compatibility issue where rendering lobby interaction entities during a voice connection reset could crash the client.
+
+——————
+
 ## 1.0.3 - 2026-07-07
 
 - Minecraft: 1.21.1

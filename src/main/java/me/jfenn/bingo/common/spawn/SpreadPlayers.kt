@@ -290,7 +290,7 @@ class SpreadPlayers(
                 }
             }
 
-            return world.getChunkAsync(startChunk).thenComposeAsync({ chunk ->
+            return world.getChunkAsync(chunkPos).thenComposeAsync({ chunk ->
                 if (chunk == null) {
                     log.error("Could not find any valid spawn location because getChunk returned null. Using the default world spawn, which may be buggy...")
                     return@thenComposeAsync CompletableFuture.completedFuture(worldSpawnPos)

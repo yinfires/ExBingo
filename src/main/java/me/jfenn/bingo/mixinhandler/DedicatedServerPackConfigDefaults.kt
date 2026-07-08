@@ -8,10 +8,16 @@ import net.minecraft.world.flag.FeatureFlags
 
 object DedicatedServerPackConfigDefaults {
     private const val BUNDLE_FEATURE_PACK_ID = "bundle"
+    private const val VANILLA_PACK_ID = "vanilla"
 
     @JvmStatic
     fun forceBundleFeaturePack(config: DataPackConfig): DataPackConfig {
-        val enabled = config.enabled.filterNot { it == BUNDLE_FEATURE_PACK_ID } + BUNDLE_FEATURE_PACK_ID
+        val enabled = config.enabled.filterNot { it == BUNDLE_FEATURE_PACK_ID }.toMutableList()
+        val insertIndex = enabled.indexOf(VANILLA_PACK_ID)
+            .takeIf { it >= 0 }
+            ?.plus(1)
+            ?: 0
+        enabled.add(insertIndex, BUNDLE_FEATURE_PACK_ID)
         val disabled = config.disabled.filterNot { it == BUNDLE_FEATURE_PACK_ID }
         return DataPackConfig(enabled, disabled)
     }
@@ -26,10 +32,11 @@ object DedicatedServerPackConfigDefaults {
 
     @JvmStatic
     fun forceBundleFeaturePack(packRepository: PackRepository, config: WorldDataConfiguration): WorldDataConfiguration {
+        val adjusted = forceBundleFeaturePack(config)
         if (packRepository.isAvailable(BUNDLE_FEATURE_PACK_ID)) {
-            packRepository.addPack(BUNDLE_FEATURE_PACK_ID)
+            packRepository.setSelected(adjusted.dataPacks.enabled)
         }
 
-        return forceBundleFeaturePack(config)
+        return adjusted
     }
 }
