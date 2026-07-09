@@ -123,6 +123,15 @@
       "requiredMods": ["irons_spellbooks"]
     },
     {
+      "id": "l2complements",
+      "name": {
+        "translate": "bingo.list.l2complements",
+        "fallback": "L2Complements"
+      },
+      "value": "+from=l2complements -uncategorized -unobtainable -unbreakable",
+      "requiredMods": ["l2complements"]
+    },
+    {
       "id": "undergarden",
       "name": {
         "translate": "bingo.list.undergarden",

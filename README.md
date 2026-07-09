@@ -47,6 +47,7 @@ Bingo 游戏重置时会清空所有队伍箱。
 - Mowzie 的生物（Mowzie's Mobs）
 - 阿撒泻勒邪教（Cult of Azazel）
 - Iron 的法术与魔法书（Iron's Spells 'n Spellbooks）
+- 莱特兰扩充（L2Complements）
 - 深暗之园（The Undergarden）
 
 </details>
@@ -135,6 +136,7 @@ All team chests are cleared when the Bingo game resets.
 - Mowzie's Mobs
 - Cult of Azazel
 - Iron's Spells 'n Spellbooks
+- L2Complements
 - The Undergarden
 
 

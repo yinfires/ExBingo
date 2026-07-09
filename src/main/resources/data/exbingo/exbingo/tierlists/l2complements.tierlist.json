@@ -1,0 +1,28 @@
+{
+    "replace": false,
+    "S": [
+        "l2complements:shulkerate_ingot",
+        "l2complements:sculkium_ingot",
+        "l2complements:eternium_ingot",
+        "l2complements:explosion_shard",
+        "l2complements:soul_flame",
+        "l2complements:storm_core",
+        "l2complements:blackstone_core",
+        "l2complements:warden_bone_shard",
+        "l2complements:captured_shulker_bullet",
+        "l2complements:resonant_feather",
+        "l2complements:guardian_eye",
+        "l2complements:captured_wind",
+        "l2complements:void_eye",
+        "l2complements:force_field"
+    ],
+    "A": [
+        "l2complements:totemic_gold_ingot",
+        "l2complements:poseidite_ingot",
+        "l2complements:hard_ice"
+    ],
+    "B": [],
+    "C": [],
+    "D": [],
+    "groups": []
+}
