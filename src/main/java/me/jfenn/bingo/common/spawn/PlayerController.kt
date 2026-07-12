@@ -16,8 +16,12 @@ import me.jfenn.bingo.integrations.curios.ICuriosApi
 import me.jfenn.bingo.platform.*
 import me.jfenn.bingo.platform.event.IEventBus
 import me.jfenn.bingo.platform.item.IItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.GameRules
+import net.neoforged.fml.ModList
 import org.slf4j.Logger
 
 /**
@@ -53,6 +57,108 @@ internal class PlayerController(
     private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
     private val serverWorldFactory: IServerWorldFactory,
 ) : BingoComponent(), LobbyPlayerRestorer {
+    private companion object {
+        private val ENIGMATIC_LEGACY_MOD_IDS = setOf("enigmaticlegacyplus", "enigmaticlegacy")
+        private val ENIGMATIC_LEGACY_STARTER_RELIC_PATHS = setOf(
+            "unwitnessed_amulet",
+            "cursed_ring",
+            "enigmatic_amulet",
+            "enigmatic_amulet_red",
+            "enigmatic_amulet_aqua",
+            "enigmatic_amulet_violet",
+            "enigmatic_amulet_magenta",
+            "enigmatic_amulet_green",
+            "enigmatic_amulet_black",
+            "enigmatic_amulet_blue",
+        )
+        private val ENIGMATIC_LEGACY_STARTER_RELICS = ENIGMATIC_LEGACY_MOD_IDS
+            .flatMap { modId ->
+                ENIGMATIC_LEGACY_STARTER_RELIC_PATHS.map { path ->
+                    ResourceLocation.fromNamespaceAndPath(modId, path)
+                }
+            }
+            .toSet()
+        private val SET_ENIGMATIC_WORLD_CURSED_METHOD by lazy(LazyThreadSafetyMode.NONE) {
+            runCatching {
+                Class.forName("auviotre.enigmatic.legacy.handlers.EnigmaticHandler")
+                    .getMethod("setCurrentWorldCursed", java.lang.Boolean.TYPE)
+            }.getOrNull()
+        }
+    }
+
+    private fun isEnigmaticLegacyInstalled(): Boolean {
+        val modList = ModList.get()
+        return ENIGMATIC_LEGACY_MOD_IDS.any { modList.isLoaded(it) }
+    }
+
+    private fun removeEnigmaticLegacyStarterRelics(player: IPlayerHandle): Boolean {
+        var removed = false
+
+        player.allHeldStacks()
+            .filter { it.identifier in ENIGMATIC_LEGACY_STARTER_RELICS }
+            .forEach { stack ->
+                stack.count = 0
+                removed = true
+            }
+
+        curiosApi.clearCurios(player.player) { stack ->
+            val shouldRemove = stack.identifier in ENIGMATIC_LEGACY_STARTER_RELICS
+            if (shouldRemove) removed = true
+            !shouldRemove
+        }
+
+        return removed
+    }
+
+    private fun setBooleanIfNeeded(tag: CompoundTag, key: String, value: Boolean): Boolean {
+        if (!value && !tag.contains(key)) return false
+        if (tag.contains(key) && tag.getBoolean(key) == value) return false
+        tag.putBoolean(key, value)
+        return true
+    }
+
+    private fun markEnigmaticLegacyStarterGiftsHandled(player: IPlayerHandle): Boolean {
+        val persistentData = player.player.persistentData
+        val hasPlayerPersisted = persistentData.contains(Player.PERSISTED_NBT_TAG)
+        val playerPersisted = if (persistentData.contains(Player.PERSISTED_NBT_TAG)) {
+            persistentData.getCompound(Player.PERSISTED_NBT_TAG)
+        } else {
+            CompoundTag()
+        }
+
+        var changed = !hasPlayerPersisted
+        changed = setBooleanIfNeeded(playerPersisted, "UnwitnessedAmuletGift", true) || changed
+        changed = setBooleanIfNeeded(playerPersisted, "CursedRingGift", true) || changed
+        changed = setBooleanIfNeeded(playerPersisted, "SevenCursesBearing", false) || changed
+
+        if (changed) {
+            persistentData.put(Player.PERSISTED_NBT_TAG, playerPersisted)
+        }
+        return changed
+    }
+
+    private fun markEnigmaticLegacyWorldUncursed() {
+        runCatching {
+            SET_ENIGMATIC_WORLD_CURSED_METHOD?.invoke(null, false)
+        }
+    }
+
+    private fun enforceEnigmaticLegacyLobbyStarterRelics(player: IPlayerHandle, syncInventory: Boolean = true) {
+        if (!state.isLobbyMode || state.state != GameState.PREGAME || !isEnigmaticLegacyInstalled()) return
+
+        val removed = removeEnigmaticLegacyStarterRelics(player)
+        val changedPersistedState = markEnigmaticLegacyStarterGiftsHandled(player)
+
+        if (removed || changedPersistedState) {
+            markEnigmaticLegacyWorldUncursed()
+        }
+
+        if (removed) {
+            log.debug("[PlayerController] Removed Enigmatic Legacy starter relics from {}", player.playerName)
+            if (syncInventory) player.syncInventory()
+        }
+    }
+
     private fun updateVanishStatus(
         player: IPlayerHandle
     ): Boolean {
@@ -177,6 +283,8 @@ internal class PlayerController(
             player.abilities.allowFlying = true
             player.sendAbilitiesUpdate()
         }
+
+        enforceEnigmaticLegacyLobbyStarterRelics(player)
     }
 
     override fun restoreLobbyPlayerAfterReset(player: IPlayerHandle) {
@@ -223,6 +331,7 @@ internal class PlayerController(
         player.abilities.allowFlying = false
         player.sendAbilitiesUpdate()
         updateVanishStatus(player)
+        enforceEnigmaticLegacyLobbyStarterRelics(player, syncInventory = false)
         player.resyncClientState(syncPosition = true)
     }
 
@@ -310,6 +419,8 @@ internal class PlayerController(
                 spawnService.giveSpawnEquipment(listOf(player))
             }
         }
+
+        enforceEnigmaticLegacyLobbyStarterRelics(player, syncInventory = false)
 
         // Flush the cleared inventory to the client AFTER teleporting. A cross-dimension
         // teleport (e.g. back to the lobby) resets the client's container, so syncing before
@@ -440,6 +551,9 @@ internal class PlayerController(
                 // ensure that players don't run out of hunger in the lobby
                 if (state.isLobbyMode && state.state == GameState.PREGAME && player.foodLevel < 10) {
                     player.foodLevel = 10
+                }
+                if (state.isLobbyMode && state.state == GameState.PREGAME) {
+                    enforceEnigmaticLegacyLobbyStarterRelics(player)
                 }
 
                 if (state.state == GameState.PLAYING && player.health > 0f && !player.isSpectator) {

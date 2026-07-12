@@ -30,6 +30,45 @@ Each release should include:
 
 ——————
 
+## 1.0.5 - 2026-07-12
+
+- Minecraft: 1.21.1
+- Mod Loader: NeoForge 21.1.234
+- License: LGPL-3.0-only
+- Release Type: Feature update
+
+### 中文更新日志
+
+#### 新增内容
+
+- 新增附魔之瓶经验掉落覆盖功能。默认开启后每个附魔之瓶会掉落 100-500 点经验，并可通过 `experienceBottleXp.enabled`、`experienceBottleXp.min`、`experienceBottleXp.max` 或 NeoForge 配置界面的“游戏玩法”部分调整。
+
+#### 修复内容
+
+- 修复重置世界或第二局开局时，跨维度传送如果在服务端玩家追踪过程中部分失败，可能导致玩家卡在 `LOADING`、出生区块就绪检查无法完成的问题。现在会修复“实体已被目标世界追踪，但未加入该世界玩家列表”的异常状态，并重新同步维度切换后的客户端状态。
+
+#### 兼容性
+
+- 新增莱特兰扩充（L2Complements）内置专属棋盘与起步难度表。检测到该模组时，棋盘选择菜单会显示“莱特兰扩充”棋盘，聚焦高阶核心物品目标。
+- 新增 Enigmatic Legacy+ / Enigmatic Legacy 大厅兼容清理。开局前大厅会移除神秘遗物开局赠送的护身符、七咒之戒等遗物（包含 Curios 饰品栏），并标记赠送 / 诅咒状态已处理，避免玩家在大厅反复获得或保留这些开局效果。
+
+### English Changelog
+
+#### Added
+
+- Added a configurable Bottle o' Enchanting XP override. When enabled, each bottle drops 100-500 XP by default, configurable through `experienceBottleXp.enabled`, `experienceBottleXp.min`, `experienceBottleXp.max`, or the Gameplay section of the NeoForge config screen.
+
+#### Fixed
+
+- Fixed reset or second-round starts where a cross-dimension teleport could partially fail during server-side player tracking, leaving the player stuck in `LOADING` because spawn readiness checks could not complete. ExBingo now repairs the state where the entity is tracked by the target world but missing from that world's player list, then resyncs the post-dimension client state.
+
+#### Compatibility
+
+- Added a built-in L2Complements board and starter tier list. When L2Complements is installed, the card selection menu shows an L2Complements board focused on high-tier core item objectives.
+- Added Enigmatic Legacy+ / Enigmatic Legacy lobby cleanup. In the pre-game lobby, starter relics such as the Enigmatic Amulet and Ring of Seven Curses are removed from inventories and Curios slots, and the gift / cursed state is marked as handled so those effects are not repeatedly granted or kept active in the lobby.
+
+——————
+
 ## 1.0.4 - 2026-07-07
 
 - Minecraft: 1.21.1

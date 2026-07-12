@@ -38,7 +38,6 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.level.TicketType
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundSource
@@ -48,6 +47,7 @@ import net.minecraft.world.item.UseAnim
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.level.GameType
 import net.minecraft.world.level.ChunkPos
+import net.neoforged.neoforge.event.EventHooks
 import org.joml.Vector3d
 import java.util.*
 
@@ -394,17 +394,20 @@ class PlayerHandle(
     override fun teleport(world: IServerWorld, pos: Vector3d, yaw: Float, pitch: Float) {
         val oldLevel = player.serverLevel()
         val newLevel = world.world
-        val chunkTrackingOps = ServerLevelPlayerChunkTrackingOps(
-            level = newLevel,
-            player = player,
-            chunkPos = ChunkPos(BlockPos.containing(pos.x, pos.y, pos.z)),
-        )
-        if (oldLevel !== newLevel) {
-            preparePlayerChunkTracking(chunkTrackingOps)
-        }
-        player.teleportTo(world.world, pos.x, pos.y, pos.z, emptySet(), yaw, pitch)
-        if (oldLevel !== newLevel) {
-            finishPlayerChunkTracking(chunkTrackingOps)
+        try {
+            player.teleportTo(newLevel, pos.x, pos.y, pos.z, emptySet(), yaw, pitch)
+        } catch (t: Throwable) {
+            if (oldLevel === newLevel || !recoverPartialPlayerTracking(newLevel)) {
+                throw t
+            }
+            finishPlayerChunkTracking(
+                ServerLevelPlayerChunkTrackingOps(
+                    level = newLevel,
+                    player = player,
+                    chunkPos = ChunkPos(BlockPos.containing(pos.x, pos.y, pos.z)),
+                )
+            )
+            sendPostDimensionState(oldLevel, newLevel, fireChangedDimensionEvent = true)
         }
     }
 
@@ -429,22 +432,70 @@ class PlayerHandle(
             player.revive()
             player.setServerLevel(newLevel)
             player.moveTo(pos.x, pos.y, pos.z, yaw, pitch)
-            newLevel.addDuringTeleport(player)
+            addDuringTeleportOrRepair(newLevel)
             finishPlayerChunkTracking(chunkTrackingOps)
             player.connection.teleport(pos.x, pos.y, pos.z, yaw, pitch)
             player.connection.resetPosition()
         } else {
             player.connection.teleport(pos.x, pos.y, pos.z, yaw, pitch)
             player.connection.resetPosition()
+            ensurePlayerLevelPresence(newLevel)
             finishPlayerChunkTracking(chunkTrackingOps)
         }
 
+        sendPostDimensionState(oldLevel, newLevel)
+    }
+
+    private fun addDuringTeleportOrRepair(level: ServerLevel) {
+        try {
+            level.addDuringTeleport(player)
+        } catch (t: Throwable) {
+            if (!recoverPartialPlayerTracking(level)) {
+                throw t
+            }
+        }
+        repairPartialPlayerTracking(level)
+    }
+
+    private fun ensurePlayerLevelPresence(level: ServerLevel) {
+        if (level.getEntity(player.uuid) !== player) {
+            addDuringTeleportOrRepair(level)
+        } else {
+            repairPartialPlayerTracking(level)
+        }
+    }
+
+    private fun repairPartialPlayerTracking(level: ServerLevel): Boolean {
+        if (level.getEntity(player.uuid) !== player) return false
+        if (!level.players().contains(player)) {
+            level.players().add(player)
+            level.updateSleepingPlayerList()
+        }
+        return true
+    }
+
+    private fun recoverPartialPlayerTracking(level: ServerLevel): Boolean {
+        if (level.getEntity(player.uuid) !== player || level.players().contains(player)) return false
+        level.players().add(player)
+        level.updateSleepingPlayerList()
+        return true
+    }
+
+    private fun sendPostDimensionState(
+        oldLevel: ServerLevel,
+        newLevel: ServerLevel,
+        fireChangedDimensionEvent: Boolean = false,
+    ) {
+        val playerList = player.server.playerList
         player.hasChangedDimension()
         player.connection.send(ClientboundPlayerAbilitiesPacket(player.abilities))
         playerList.sendLevelInfo(player, newLevel)
         playerList.sendAllPlayerInfo(player)
         playerList.sendActivePlayerEffects(player)
         net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(player)
+        if (fireChangedDimensionEvent && oldLevel !== newLevel) {
+            EventHooks.firePlayerChangedDimensionEvent(player, oldLevel.dimension(), newLevel.dimension())
+        }
     }
 
     override fun setSpawnPoint(
