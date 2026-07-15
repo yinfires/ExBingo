@@ -24,15 +24,15 @@ class TierListEntry(
     var tierLabel: TierLabel? = null
 
     override fun hashCode(): Int {
-        return item.hashCode()
+        return 31 * item.hashCode() + (type?.hashCode() ?: 0)
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is TierListEntry && other.item == item
+        return other is TierListEntry && other.type == type && other.item == item
     }
 
     override fun compareTo(other: TierListEntry): Int {
-        return item.compareTo(other.item)
+        return compareValuesBy(this, other, { it.item }, { it.type })
     }
 
     @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
@@ -58,7 +58,11 @@ class TierListEntry(
         }
 
         override fun serialize(encoder: Encoder, value: TierListEntry) {
-            stringSerializer.serialize(encoder, value.item)
+            val content = value.type
+                ?.takeIf { it.isNotBlank() }
+                ?.let { "$it!${value.item}" }
+                ?: value.item
+            stringSerializer.serialize(encoder, content)
         }
     }
 

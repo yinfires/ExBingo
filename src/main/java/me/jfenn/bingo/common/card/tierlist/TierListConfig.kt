@@ -161,17 +161,15 @@ data class TierListConfig(
     }
 
     fun contains(objectiveId: String): Boolean {
-        val entry = TierListEntry(null, objectiveId)
-        return isCategorized(objectiveId) || values.contains(entry)
+        return isCategorized(objectiveId) || values.any { it.item == objectiveId }
     }
 
     fun isCategorized(objectiveId: String): Boolean {
-        val entry = TierListEntry(null, objectiveId)
-        return s.contains(entry)
-                || a.contains(entry)
-                || b.contains(entry)
-                || c.contains(entry)
-                || d.contains(entry)
+        return s.any { it.item == objectiveId }
+                || a.any { it.item == objectiveId }
+                || b.any { it.item == objectiveId }
+                || c.any { it.item == objectiveId }
+                || d.any { it.item == objectiveId }
     }
 
     private fun mapTiers(map: (Set<TierListEntry>, tier: TierLabel?) -> Set<TierListEntry>): TierListConfig {
