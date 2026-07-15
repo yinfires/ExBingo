@@ -59,6 +59,7 @@ internal class TierListLoader(
             val (isModified, finalConfig) = trackedFileService.readFileOrResource(
                 path = configFile(name),
                 resource = resource,
+                deleteMissingResource = false,
             )
 
             if (finalConfig == null) continue

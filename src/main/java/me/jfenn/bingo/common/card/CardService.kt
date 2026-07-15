@@ -273,7 +273,7 @@ internal class CardService(
         val replacements = generateObjectives(
             seed = seed,
             cardOptions = card.options,
-            excludeObjectives = excludeObjectives + card.objectives.keys,
+            excludeObjectives = excludeObjectives + card.objectives.keys + card.objectives.keys.map(::bareObjectiveId),
             dist = dist,
         )
 
@@ -516,6 +516,24 @@ internal class CardService(
         return namespace == MOD_ID_MINECRAFT || namespace == MOD_ID_BINGO
     }
 
+    private fun bareObjectiveId(objectiveId: String): String =
+        objectiveId.substringAfter('!')
+
+    private fun BingoObjective.withCardId(id: String): BingoObjective {
+        if (this.id == id) return this
+
+        return when (this) {
+            is BingoObjective.ItemEntry -> copy(id = id)
+            is BingoObjective.AdvancementEntry -> copy(id = id)
+            is BingoObjective.SomeOfEntry -> copy(id = id)
+            is BingoObjective.InverseEntry -> copy(id = id)
+            is BingoObjective.OpponentEntry -> copy(id = id)
+            is BingoObjective.StatsEntry -> copy(id = id)
+            is BingoObjective.ScoreboardEntry -> copy(id = id)
+            is BingoObjective.FreeSpace -> this
+        }
+    }
+
     data class GeneratedObjective(
         val entry: BingoCardEntry,
         val objectives: Map<String, BingoObjective>,
@@ -609,7 +627,7 @@ internal class CardService(
 
             return GeneratedObjective(
                 entry = BingoCardEntry(
-                    objectiveId = entry.item,
+                    objectiveId = entry.typedId,
                     tier = entry.tierLabel,
                     source = entry.listName,
                 ),
@@ -619,8 +637,10 @@ internal class CardService(
 
         fun addToExcluded(objective: GeneratedObjective) {
             // if the chosen item is in any item groups, exclude all of those groups
+            val bareObjectiveId = bareObjectiveId(objective.entry.objectiveId)
             excludedObjectives.add(objective.entry.objectiveId)
-            for (group in tierList.groups.filter { group -> group.contains(objective.entry.objectiveId) }) {
+            excludedObjectives.add(bareObjectiveId)
+            for (group in tierList.groups.filter { group -> group.contains(bareObjectiveId) }) {
                 excludedObjectives.addAll(group)
             }
 
@@ -729,9 +749,9 @@ internal class CardService(
     ): Map<String, BingoObjective>? {
         val id = objectiveType?.let { "$it!$objectiveId" } ?: objectiveId
         return withMdc(MDC_OBJECTIVE to id) {
-            val objective = objectiveManager.find(id, state) ?: return null
+            val objective = objectiveManager.find(id, state)?.withCardId(id) ?: return null
 
-            objectives[objectiveId] = objective
+            objectives[id] = objective
 
             val resolvedObjectives = objective.dependsOnObjectives
                 .mapNotNull {

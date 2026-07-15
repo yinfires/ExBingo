@@ -8,6 +8,7 @@ import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
 import me.jfenn.bingo.common.card.tierlist.TierLabel
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.FileTime
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmErasure
@@ -99,6 +100,39 @@ class NeoForgeConfigBridgeTest {
 
         assertEquals(custom, merged["enigmaticlegacyplus"])
         assertEquals(ObjectiveFilterList.fromString("-unobtainable -tedious"), merged["everything"])
+    }
+
+    @Test
+    fun `startup config source keeps newer or equal legacy json authoritative`() {
+        val time = FileTime.fromMillis(1_000)
+
+        assertEquals(
+            NeoForgeConfigBridge.StartupConfigSource.LEGACY_JSON,
+            NeoForgeConfigBridge.chooseStartupConfigSource(time, time),
+        )
+        assertEquals(
+            NeoForgeConfigBridge.StartupConfigSource.LEGACY_JSON,
+            NeoForgeConfigBridge.chooseStartupConfigSource(FileTime.fromMillis(2_000), time),
+        )
+    }
+
+    @Test
+    fun `startup config source only lets newer toml override legacy json`() {
+        val legacyTime = FileTime.fromMillis(1_000)
+        val tomlTime = FileTime.fromMillis(2_000)
+
+        assertEquals(
+            NeoForgeConfigBridge.StartupConfigSource.NEOFORGE_TOML,
+            NeoForgeConfigBridge.chooseStartupConfigSource(legacyTime, tomlTime),
+        )
+        assertEquals(
+            NeoForgeConfigBridge.StartupConfigSource.NEOFORGE_TOML,
+            NeoForgeConfigBridge.chooseStartupConfigSource(null, tomlTime),
+        )
+        assertEquals(
+            NeoForgeConfigBridge.StartupConfigSource.LEGACY_JSON,
+            NeoForgeConfigBridge.chooseStartupConfigSource(legacyTime, null),
+        )
     }
 
     private fun collectConfigLeaves(type: KClass<*>, prefix: String = ""): List<String> {

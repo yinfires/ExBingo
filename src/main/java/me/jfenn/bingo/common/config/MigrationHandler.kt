@@ -91,16 +91,7 @@ class MigrationHandler(
         }
 
         migrations[5] = {
-            // move the "config/bingo" dir to "config/exbingo"
-            val originalDir = environment.configDir.resolve(MOD_ID)
-            val newDir = environment.configDir.resolve(MOD_ID_BINGO)
-            if (originalDir.resolve("game-options.json").toFile().exists()) {
-                log.info("[MigrationHandler] Renaming config/$MOD_ID -> config/$MOD_ID_BINGO")
-                newDir.toFile().deleteRecursively()
-                Files.move(originalDir, newDir, StandardCopyOption.REPLACE_EXISTING)
-            } else {
-                log.warn("[MigrationHandler] Not renaming config/$MOD_ID as it does not exist.")
-            }
+            migrateLegacyConfigDir()
         }
 
         migrations[6] = {
@@ -220,7 +211,7 @@ class MigrationHandler(
                 .orEmpty()
                 .filter { it.name.endsWith(TierListLoader.FILE_SUFFIX) }
                 .forEach { sourceFile ->
-                    Files.move(sourceFile.toPath(), targetPath.resolve(sourceFile.name), StandardCopyOption.REPLACE_EXISTING)
+                    moveIfTargetMissing(sourceFile.toPath(), targetPath.resolve(sourceFile.name))
                 }
 
             if (config.databaseUrl == null) {
@@ -287,6 +278,54 @@ class MigrationHandler(
         return takeIf { matches }
     }
 
+    internal fun migrateLegacyConfigDir() {
+        // 2.0 changed the config directory from "bingo" to "exbingo". Keep this
+        // migration pinned to the literal legacy path; MOD_ID now also equals "exbingo".
+        val originalDir = environment.configDir.resolve(LEGACY_CONFIG_DIR)
+        val newDir = environment.configDir.resolve(MOD_ID_BINGO)
+
+        if (originalDir == newDir) {
+            log.warn("[MigrationHandler] Legacy config migration skipped because source and target are both $originalDir")
+            return
+        }
+
+        if (!originalDir.resolve("game-options.json").toFile().exists()) {
+            log.warn("[MigrationHandler] Not renaming config/$LEGACY_CONFIG_DIR as it does not exist.")
+            return
+        }
+
+        log.info("[MigrationHandler] Renaming config/$LEGACY_CONFIG_DIR -> config/$MOD_ID_BINGO")
+        if (!newDir.toFile().exists()) {
+            Files.move(originalDir, newDir, StandardCopyOption.REPLACE_EXISTING)
+            return
+        }
+
+        mergeConfigDir(originalDir, newDir)
+    }
+
+    private fun mergeConfigDir(source: Path, target: Path) {
+        if (source.toFile().isDirectory) {
+            target.toFile().mkdirs()
+            source.toFile().listFiles().orEmpty().forEach { child ->
+                mergeConfigDir(child.toPath(), target.resolve(child.name))
+            }
+            source.toFile().delete()
+            return
+        }
+
+        moveIfTargetMissing(source, target)
+    }
+
+    private fun moveIfTargetMissing(source: Path, target: Path) {
+        if (target.toFile().exists()) {
+            log.warn("[MigrationHandler] Keeping existing ${target.pathString}; legacy file remains at ${source.pathString}")
+            return
+        }
+
+        target.parent.toFile().mkdirs()
+        Files.move(source, target)
+    }
+
     fun runMigrations() {
         val fromVersion = config.version
         val maxVersion = migrations.keys.max()
@@ -313,6 +352,10 @@ class MigrationHandler(
                     log.info("| $MOD_ID_BINGO | ${it.fileName.toString().padEnd(40)} | ${md5Of(it)} |")
                 }
         }
+    }
+
+    private companion object {
+        const val LEGACY_CONFIG_DIR = "bingo"
     }
 
 }

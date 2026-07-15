@@ -37,7 +37,8 @@ internal class TrackedFileService(
     inline fun <reified T: Any> readFileOrResource(
         path: Path,
         resource: T?,
-        jsonInstance: Json = json
+        jsonInstance: Json = json,
+        deleteMissingResource: Boolean = true,
     ): Result<T> {
         val serializer = serializer<T>()
         return readFileOrResource(
@@ -47,6 +48,7 @@ internal class TrackedFileService(
             deserialize = {
                 jsonInstance.decodeFromUtf8Stream(serializer, it)
             },
+            deleteMissingResource = deleteMissingResource,
         )
     }
 
@@ -66,6 +68,7 @@ internal class TrackedFileService(
         resource: T?,
         serialize: (T) -> String,
         deserialize: (InputStream) -> T,
+        deleteMissingResource: Boolean = true,
     ): Result<T> {
         val name = environment.configDir.resolve(MOD_ID_BINGO).relativize(path).toString()
         val trackedFile: TrackedFile? = configService.files.filesMap[name]
@@ -87,6 +90,11 @@ internal class TrackedFileService(
 
         if (resourceJson == null) {
             if (fileJson != null && md5Of(fileJson) == trackedFile?.md5) {
+                if (!deleteMissingResource) {
+                    log.warn("[$name] Resource no longer exists - keeping existing config file.")
+                    return Result(false, fileConfig)
+                }
+
                 // If the file hasn't been modified (was created from data, but no longer exists), remove it
                 // - this may happen if a datapack providing the file was uninstalled
                 log.warn("[$name] Resource no longer exists - removing from config folder!")

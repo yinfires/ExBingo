@@ -20,6 +20,12 @@ class TierListEntry(
     val item: String,
 ) : Comparable<TierListEntry> {
 
+    val typedId: String
+        get() = type
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "$it!$item" }
+            ?: item
+
     var listName: String = "[unknown]"
     var tierLabel: TierLabel? = null
 
@@ -58,11 +64,7 @@ class TierListEntry(
         }
 
         override fun serialize(encoder: Encoder, value: TierListEntry) {
-            val content = value.type
-                ?.takeIf { it.isNotBlank() }
-                ?.let { "$it!${value.item}" }
-                ?: value.item
-            stringSerializer.serialize(encoder, content)
+            stringSerializer.serialize(encoder, value.typedId)
         }
     }
 

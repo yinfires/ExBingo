@@ -17,6 +17,7 @@ import net.neoforged.neoforge.common.ModConfigSpec
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.FileTime
 import java.util.UUID
 import java.util.function.Predicate
 import java.util.function.Supplier
@@ -37,6 +38,9 @@ object NeoForgeConfigBridge {
     val commonSpec: ModConfigSpec = commonPair.right
     val clientValues: ClientValues = clientPair.left
     val clientSpec: ModConfigSpec = clientPair.right
+
+    private var startupLegacyConfigDir: Path? = null
+    private var startupLegacyLastModified: FileTime? = null
 
     val mirroredConfigPaths: Set<String> =
         (commonValues.entries + clientValues.entries).map { it.configPath }.toSet()
@@ -86,23 +90,27 @@ object NeoForgeConfigBridge {
 
     fun onConfigEvent(event: ModConfigEvent) {
         val config = event.config
-        if (config.modId != MOD_ID_BINGO || config.fileName !in setOf(COMMON_FILE_NAME, CLIENT_FILE_NAME)) {
+        val scope = configScopeForFileName(config.fileName)
+        if (config.modId != MOD_ID_BINGO || scope == null) {
             return
         }
 
         runCatching {
-            syncLoadedSpecsToJson(FMLPaths.CONFIGDIR.get())
+            when (event) {
+                is ModConfigEvent.Loading -> syncInitialLoadedSpec(FMLPaths.CONFIGDIR.get(), scope)
+                is ModConfigEvent.Reloading -> syncLoadedSpecToJson(FMLPaths.CONFIGDIR.get(), scope)
+            }
         }.onFailure {
-            log.error("Unable to sync ExBingo NeoForge config values into config/exbingo/config.json", it)
+            log.error("Unable to sync ExBingo NeoForge config values with config/exbingo/config.json", it)
         }
     }
 
-    fun applyLoadedSpecs(config: BingoConfig): BingoConfig {
+    fun applyLoadedSpecs(config: BingoConfig, configDir: Path = FMLPaths.CONFIGDIR.get()): BingoConfig {
         var result = config
-        if (commonSpec.isLoaded) {
+        if (commonSpec.isLoaded && loadedSpecShouldOverrideLegacy(configDir, ConfigScope.COMMON)) {
             result = commonValues.applyTo(result)
         }
-        if (clientSpec.isLoaded) {
+        if (clientSpec.isLoaded && loadedSpecShouldOverrideLegacy(configDir, ConfigScope.CLIENT)) {
             result = result.copy(client = clientValues.applyTo(result.client))
         }
         return result
@@ -140,11 +148,29 @@ object NeoForgeConfigBridge {
     fun applyCommonValuesTo(config: BingoConfig): BingoConfig =
         commonValues.applyTo(config)
 
-    private fun syncLoadedSpecsToJson(configDir: Path) {
+    private fun syncInitialLoadedSpec(configDir: Path, scope: ConfigScope) {
+        val source = chooseStartupConfigSource(
+            originalStartupLegacyLastModified(configDir),
+            lastModifiedOrNull(configDir.resolve(scope.fileName)),
+        )
+        when (source) {
+            StartupConfigSource.LEGACY_JSON -> syncJsonToLoadedSpec(configDir, scope)
+            StartupConfigSource.NEOFORGE_TOML -> syncLoadedSpecToJson(configDir, scope)
+        }
+    }
+
+    private fun syncLoadedSpecToJson(configDir: Path, scope: ConfigScope) {
         val current = readLegacyConfig(configDir)
-        val updated = applyLoadedSpecs(current)
+        val updated = applyLoadedSpec(current, scope)
         ExperienceBottleXpHelper.updateFrom(updated)
         writeLegacyConfig(configDir, updated)
+    }
+
+    private fun syncJsonToLoadedSpec(configDir: Path, scope: ConfigScope) {
+        val current = readLegacyConfig(configDir)
+        ExperienceBottleXpHelper.updateFrom(current)
+        setLoadedSpecFrom(current, scope)
+        saveLoadedSpec(scope)
     }
 
     private fun defaultConfig(): BingoConfig =
@@ -171,6 +197,68 @@ object NeoForgeConfigBridge {
             it.write(json.encodeToString(config))
         }
     }
+
+    private fun applyLoadedSpec(config: BingoConfig, scope: ConfigScope): BingoConfig =
+        when (scope) {
+            ConfigScope.COMMON -> commonValues.applyTo(config)
+            ConfigScope.CLIENT -> config.copy(client = clientValues.applyTo(config.client))
+        }
+
+    private fun setLoadedSpecFrom(config: BingoConfig, scope: ConfigScope) {
+        when (scope) {
+            ConfigScope.COMMON -> commonValues.setFrom(config)
+            ConfigScope.CLIENT -> clientValues.setFrom(config.client)
+        }
+    }
+
+    private fun saveLoadedSpec(scope: ConfigScope) {
+        when (scope) {
+            ConfigScope.COMMON -> if (commonSpec.isLoaded) commonSpec.save()
+            ConfigScope.CLIENT -> if (clientSpec.isLoaded) clientSpec.save()
+        }
+    }
+
+    private fun loadedSpecShouldOverrideLegacy(configDir: Path, scope: ConfigScope): Boolean =
+        chooseStartupConfigSource(
+            lastModifiedOrNull(configDir.resolve(legacyConfigRelativePath)),
+            lastModifiedOrNull(configDir.resolve(scope.fileName)),
+        ) == StartupConfigSource.NEOFORGE_TOML
+
+    private fun originalStartupLegacyLastModified(configDir: Path): FileTime? {
+        val normalizedConfigDir = configDir.toAbsolutePath().normalize()
+        if (startupLegacyConfigDir != normalizedConfigDir) {
+            startupLegacyConfigDir = normalizedConfigDir
+            startupLegacyLastModified = lastModifiedOrNull(configDir.resolve(legacyConfigRelativePath))
+        }
+        return startupLegacyLastModified
+    }
+
+    private fun lastModifiedOrNull(path: Path): FileTime? =
+        runCatching { Files.getLastModifiedTime(path) }.getOrNull()
+
+    internal enum class StartupConfigSource {
+        LEGACY_JSON,
+        NEOFORGE_TOML,
+    }
+
+    internal fun chooseStartupConfigSource(
+        legacyJsonLastModified: FileTime?,
+        neoForgeTomlLastModified: FileTime?,
+    ): StartupConfigSource =
+        when {
+            neoForgeTomlLastModified == null -> StartupConfigSource.LEGACY_JSON
+            legacyJsonLastModified == null -> StartupConfigSource.NEOFORGE_TOML
+            legacyJsonLastModified >= neoForgeTomlLastModified -> StartupConfigSource.LEGACY_JSON
+            else -> StartupConfigSource.NEOFORGE_TOML
+        }
+
+    private enum class ConfigScope(val fileName: String) {
+        COMMON(COMMON_FILE_NAME),
+        CLIENT(CLIENT_FILE_NAME),
+    }
+
+    private fun configScopeForFileName(fileName: String): ConfigScope? =
+        ConfigScope.entries.firstOrNull { it.fileName == fileName }
 
     class CommonValues(builder: ModConfigSpec.Builder) {
         val entries = mutableListOf<ConfigEntry>()

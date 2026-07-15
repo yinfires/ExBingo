@@ -210,8 +210,12 @@ data class TierListConfig(
         expansionService: TagExpansionService,
         entry: TierListEntry,
     ): List<TierListEntry> {
+        if (entry.type != null && entry.type != "item") {
+            return listOf(entry)
+        }
+
         return expansionService.expandItemTag(entry.item)
-            .map { TierListEntry(null, it) }
+            .map { TierListEntry(entry.type, it) }
     }
 
     fun expandName(

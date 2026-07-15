@@ -60,7 +60,7 @@ class ConfigManager(
         }
         @Suppress("UNCHECKED_CAST")
         return if (file == "$MOD_ID_BINGO/config.json" && value is BingoConfig) {
-            NeoForgeConfigBridge.applyLoadedSpecs(value)
+            NeoForgeConfigBridge.applyLoadedSpecs(value, configDir)
                 .also(ExperienceBottleXpHelper::updateFrom) as T
         } else {
             value
