@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import me.jfenn.bingo.common.card.autotier.AutoTierConfig
+import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
 import me.jfenn.bingo.common.card.tierlist.TierLabel
 import java.nio.file.Files
 import java.nio.file.Path
@@ -84,6 +85,22 @@ class NeoForgeConfigBridgeTest {
         )
     }
 
+    @Test
+    fun `toml bridge preserves custom json item filter presets`() {
+        val everything = ObjectiveFilterList.fromString("-tedious -unobtainable")
+        val custom = ObjectiveFilterList.fromString("+enigmaticlegacyplus")
+        val configPresets = linkedMapOf(
+            "everything" to everything,
+            "enigmaticlegacyplus" to custom,
+        )
+        val tomlValues = listOf("everything=-unobtainable -tedious")
+
+        val merged = NeoForgeConfigBridge.mergeItemFilterPresets(configPresets, tomlValues)
+
+        assertEquals(custom, merged["enigmaticlegacyplus"])
+        assertEquals(ObjectiveFilterList.fromString("-unobtainable -tedious"), merged["everything"])
+    }
+
     private fun collectConfigLeaves(type: KClass<*>, prefix: String = ""): List<String> {
         val constructor = type.primaryConstructor
             ?: error("Config type ${type.simpleName} must have a primary constructor")
@@ -113,6 +130,7 @@ class NeoForgeConfigBridgeTest {
         ExperienceBottleXpConfig::class,
         ClientConfig::class,
         PlayerSettings::class,
+        PerformanceCleanupConfig::class,
         ServerConfig::class,
     )
 }

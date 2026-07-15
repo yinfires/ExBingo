@@ -7,12 +7,14 @@ import me.jfenn.bingo.common.card.CardService
 import me.jfenn.bingo.common.card.objective.BingoObjective
 import me.jfenn.bingo.common.card.objective.BingoObjectiveManager
 import me.jfenn.bingo.common.card.objective.ItemObjectiveManager
+import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.event.ScopedEvents
 import me.jfenn.bingo.common.event.model.CardShuffledEvent
 import me.jfenn.bingo.common.event.model.ScoreChangedEvent
 import me.jfenn.bingo.common.event.model.TeamWinnerEvent
 import me.jfenn.bingo.common.game.GameCommands
 import me.jfenn.bingo.common.game.GameEndReason
+import me.jfenn.bingo.common.game.GamePausePolicy
 import me.jfenn.bingo.common.game.GameService
 import me.jfenn.bingo.common.options.*
 import me.jfenn.bingo.common.scope.BingoComponent
@@ -45,6 +47,7 @@ internal class ScoredItemCheck(
     private val scoreUpdateService: ScoreUpdateService,
     private val objectiveManager: BingoObjectiveManager,
     private val itemObjectiveManager: ItemObjectiveManager,
+    private val config: BingoConfig,
     private val playerManager: IPlayerManager,
     private val text: TextProvider,
     private val permission: IPermissionsApi,
@@ -452,7 +455,7 @@ internal class ScoredItemCheck(
             .filter { player -> finishedTeams.any { it.includesPlayer(player) } }
             .forEach { player ->
                 player.sendMessage(message)
-                if (permission.hasPermission(player, Permission.CONFIGURE_GAME)) {
+                if (config.allowNonOpGameConfiguration || permission.hasPermission(player, Permission.CONFIGURE_GAME)) {
                     player.sendMessage(messageOp)
                 }
             }
@@ -555,6 +558,10 @@ internal class ScoredItemCheck(
             }
 
             if (state.state == GameState.PLAYING) {
+                if (GamePausePolicy.shouldPauseForNoPlayers(state.state, playerManager.getPlayers().size)) {
+                    return@onGameTick
+                }
+
                 val prevLeadingTeam = ScoreService.getLeading(state)
 
                 for (card in state.cards) {

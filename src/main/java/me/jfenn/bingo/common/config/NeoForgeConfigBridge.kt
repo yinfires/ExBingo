@@ -43,6 +43,16 @@ object NeoForgeConfigBridge {
 
     val intentionallyJsonOnlyConfigPaths: Map<String, String> = mapOf(
         "version" to "Internal migration marker; it is managed by MigrationHandler.",
+        "server.performanceCleanup.enabled" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
+        "server.performanceCleanup.intervalTicks" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
+        "server.performanceCleanup.minTotalEntities" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
+        "server.performanceCleanup.keepChunkRadius" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
+        "server.performanceCleanup.maxEntitiesPerPass" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
+        "server.performanceCleanup.cleanupItems" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
+        "server.performanceCleanup.cleanupProjectiles" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
+        "server.performanceCleanup.cleanupMobs" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
+        "server.performanceCleanup.cleanupMultipartEntities" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
+        "server.performanceCleanup.protectedEntityNamespaces" to "Long-game cleanup is an operational server tuning knob kept in config/exbingo/config.json.",
     )
 
     val requiredTranslationKeys: Set<String> =
@@ -344,6 +354,14 @@ object NeoForgeConfigBridge {
             "Allows connecting clients to use the Bingo HUD instead of only map/card behavior.",
             "supportClientHud",
             { defaultConfig().supportClientHud },
+            entries,
+        )
+        val allowNonOpGameConfiguration = builder.defineBoolean(
+            "allowNonOpGameConfiguration",
+            commonKey("lobby", "allow_non_op_game_configuration"),
+            "Allows non-operator players to use game configuration commands and lobby menu controls.",
+            "allowNonOpGameConfiguration",
+            { defaultConfig().allowNonOpGameConfiguration },
             entries,
         )
 
@@ -705,7 +723,7 @@ object NeoForgeConfigBridge {
 
         fun applyTo(config: BingoConfig): BingoConfig =
             config.copy(
-                itemFilterPresets = parseItemFilterPresetList(itemFilterPresets.get()),
+                itemFilterPresets = mergeItemFilterPresets(config.itemFilterPresets, itemFilterPresets.get()),
                 difficultyPresets = parseDifficultyPresetList(difficultyPresets.get()),
                 boardSourceWeights = parseBoardSourceWeightList(boardSourceWeights.get()),
                 disabledFilterPresets = disabledFilterPresets.get().toSet(),
@@ -726,6 +744,7 @@ object NeoForgeConfigBridge {
                 nightVisionInPostgame = nightVisionInPostgame.get(),
                 revealAllAdvancements = revealAllAdvancements.get(),
                 supportClientHud = supportClientHud.get(),
+                allowNonOpGameConfiguration = allowNonOpGameConfiguration.get(),
                 teamChestEnabled = teamChestEnabled.get(),
                 teamChestCountsForObjectives = teamChestCountsForObjectives.get(),
                 teamTeleportEnabled = teamTeleportEnabled.get(),
@@ -792,6 +811,7 @@ object NeoForgeConfigBridge {
             nightVisionInPostgame.set(config.nightVisionInPostgame)
             revealAllAdvancements.set(config.revealAllAdvancements)
             supportClientHud.set(config.supportClientHud)
+            allowNonOpGameConfiguration.set(config.allowNonOpGameConfiguration)
             teamChestEnabled.set(config.teamChestEnabled)
             teamChestCountsForObjectives.set(config.teamChestCountsForObjectives)
             teamTeleportEnabled.set(config.teamTeleportEnabled)
@@ -1206,6 +1226,16 @@ object NeoForgeConfigBridge {
                 null
             }
         }.toMap(LinkedHashMap()).ifEmpty { ObjectiveFilterList.PRESETS }
+
+    internal fun mergeItemFilterPresets(
+        configPresets: Map<String, ObjectiveFilterList>,
+        tomlValues: List<String>,
+    ): Map<String, ObjectiveFilterList> {
+        val tomlPresets = parseItemFilterPresetList(tomlValues)
+        return (configPresets + tomlPresets)
+            .takeIf { it.isNotEmpty() }
+            ?: ObjectiveFilterList.PRESETS
+    }
 
     private fun isItemFilterPresetEntry(value: String): Boolean =
         value.substringBefore('=').trim().isNotBlank() && value.contains('=')

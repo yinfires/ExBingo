@@ -1,7 +1,6 @@
 package me.jfenn.bingo.common.team
 
-import me.jfenn.bingo.common.Permission
-import me.jfenn.bingo.common.commands.hasPermission
+import me.jfenn.bingo.common.commands.canConfigureGame
 import me.jfenn.bingo.common.commands.hasState
 import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.text.TextProvider
@@ -17,7 +16,7 @@ class ShuffleTeamsCommand(
         commandManager.register("bingo") {
             literal("shuffleteams") {
                 requires {
-                    hasState(GameState.PREGAME) && hasPermission(Permission.CONFIGURE_GAME)
+                    hasState(GameState.PREGAME) && canConfigureGame()
                 }
 
                 integer("number_of_teams", min = 1) { teamsArg ->

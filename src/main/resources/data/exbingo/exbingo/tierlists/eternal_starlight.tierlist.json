@@ -42,8 +42,7 @@
         "eternal_starlight:obtain_tooth_of_hunger_blocks",
         "eternal_starlight:saturate_dagger_of_hunger",
         "eternal_starlight:summon_aethersent_golem",
-        "eternal_starlight:summon_grimstone_golem",
-        "eternal_starlight:use_blossom_of_stars"
+        "eternal_starlight:summon_grimstone_golem"
     ],
     "A": [
         "eternal_starlight:aethersent_boots",
@@ -111,7 +110,6 @@
         "eternal_starlight:glistering_greatsword",
         "eternal_starlight:glistering_morning_star",
         "eternal_starlight:glistering_sword",
-        "eternal_starlight:gravity_pickaxe",
         "eternal_starlight:light_crystal",
         "eternal_starlight:lunar_crystal",
         "eternal_starlight:malarite_axe",
@@ -357,7 +355,6 @@
         "eternal_starlight:chiseled_tooth_of_hunger_tiles",
         "eternal_starlight:cryobysslate",
         "eternal_starlight:crystallized_lunar_grass",
-        "eternal_starlight:crystallized_sand",
         "eternal_starlight:polished_abysslate",
         "eternal_starlight:polished_abysslate_brick_slab",
         "eternal_starlight:polished_abysslate_brick_stairs",

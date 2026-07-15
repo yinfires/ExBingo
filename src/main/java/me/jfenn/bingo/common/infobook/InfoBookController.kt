@@ -27,13 +27,13 @@ internal class InfoBookController(
 ) : BingoComponent() {
 
     init {
-        events.onGameTick {
+        events.onUpdateTick {
             if (state.state != GameState.PREGAME)
-                return@onGameTick
+                return@onUpdateTick
             if (!config.lobbyTutorialBook)
-                return@onGameTick
+                return@onUpdateTick
             if (!state.isLobbyMode)
-                return@onGameTick
+                return@onUpdateTick
 
             for (player in playerManager.getPlayers()) {
                 bookService.giveBookItem(player)

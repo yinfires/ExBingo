@@ -9,6 +9,7 @@ import me.jfenn.bingo.common.card.objective.ObjectiveDisplay.Companion.FORMAT_CO
 import me.jfenn.bingo.common.card.objective.ObjectiveDisplay.Companion.FORMAT_MIN
 import me.jfenn.bingo.common.data.ScopedData
 import me.jfenn.bingo.common.map.CardTile
+import me.jfenn.bingo.common.performance.TickWorkPolicy
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.teamchest.TeamChestService
 import me.jfenn.bingo.platform.IPlayerHandle
@@ -159,6 +160,10 @@ internal class ItemObjectiveManager(
 
 
     override fun tick(card: BingoCard) {
+        if (!TickWorkPolicy.shouldScanItemObjectives(card.ticks)) {
+            return
+        }
+
         val now = state.updatedAt ?: Instant.MIN
 
         val playersToItems = objectiveService.getTeamPlayers(card)
@@ -170,6 +175,7 @@ internal class ItemObjectiveManager(
                 }
                 Triple(team, player, inventory)
             }
+            .toList()
 
         for (objective in card.objectivesByInstance<BingoObjective.ItemEntry>()) {
             objectiveService.updateTeamsOnceAchieved(objective)

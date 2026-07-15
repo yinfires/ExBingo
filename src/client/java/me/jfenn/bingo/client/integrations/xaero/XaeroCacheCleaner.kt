@@ -42,9 +42,10 @@ import kotlin.streams.toList
  * cache grows without bound across games.
  *
  * Timing matters: Xaero holds a `.lock` on the active dimension while connected,
- * so cleanup runs on disconnect (when the bingo world's files are released) and on
- * client start (to mop up anything a previous session left locked). Deletion is
- * best-effort — files still held open are skipped and retried next time.
+ * so cleanup runs on disconnect only after the client has already reached the
+ * lobby. Disconnecting mid-round must keep the round cache intact for rejoin.
+ * Deletion is best-effort — files still held open are skipped and retried next
+ * lobby disconnect.
  *
  * It also runs when a game ends ([ClientGameEndEvent]) to drop the disk cache of
  * every round dimension *except the one the player is still in* (that one is locked
@@ -59,6 +60,7 @@ internal class XaeroCacheCleaner(
     private val log: Logger,
     private val environment: IModEnvironment,
     private val executors: IExecutors,
+    private val cleanupState: XaeroCacheCleanupState,
     eventBus: IEventBus,
 ) : BingoComponent() {
 
@@ -92,12 +94,14 @@ internal class XaeroCacheCleaner(
         )
 
     init {
-        // Mop up anything a previous session left behind (locked at the time).
-        cleanLater()
-
-        // Leaving the bingo world releases Xaero's file locks on the round's
-        // dimension, so this is the reliable moment to delete it.
-        eventBus.register(ClientServerEvent.Disconnect) { cleanLater() }
+        // Leaving after the client has actually returned to the lobby releases
+        // Xaero's file locks, so this is the reliable moment to delete finished
+        // round data. Disconnecting mid-game must keep the cache for rejoin.
+        eventBus.register(ClientServerEvent.Disconnect) {
+            if (cleanupState.consumeDisconnectCleanupRequest()) {
+                cleanLater()
+            }
+        }
 
         // A game just ended: the player is still connected, so the dimension they
         // are in stays locked (reset in memory elsewhere), but every other round
@@ -181,7 +185,7 @@ internal class XaeroCacheCleaner(
      * The lobby is logically one fixed place that only ever needs one map, so we keep
      * just the most-recently-modified `mw$` (this round's) and drop the rest. Using
      * mtime avoids any race with which multiworld Xaero currently considers "active":
-     * this runs on disconnect/startup when Xaero has released its locks, so it is a
+     * this runs on lobby disconnect when Xaero has released its locks, so it is a
      * pure on-disk prune with no dependency on live Xaero state.
      */
     private fun clearRoundDimensionsOf(worldDir: Path) {

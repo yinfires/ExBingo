@@ -14,11 +14,14 @@ object MinecraftServerMixinHandler {
         return state.isLobbyMode
     }
 
-    fun isGamePlaying(server: MinecraftServer): Boolean {
+    fun hasActiveGame(server: MinecraftServer): Boolean {
         val scope = BingoKoin.getScope(server) ?: return false
         val state = scope.get<BingoState>()
-        return state.state == GameState.PLAYING
+        return state.state.isActiveGame
     }
+
+    @Deprecated("Use hasActiveGame; shutdown must protect STARTING/PRELOADING/LOADING/COUNTDOWN as well.")
+    fun isGamePlaying(server: MinecraftServer): Boolean = hasActiveGame(server)
 
     fun isUnsafeSkipWorldClose(server: MinecraftServer): Boolean {
         val scope = BingoKoin.getScope(server) ?: return false

@@ -1,6 +1,8 @@
 package me.jfenn.bingo.common.commands
 
 import me.jfenn.bingo.platform.text.IText
+import me.jfenn.bingo.common.Permission
+import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
 import me.jfenn.bingo.common.text.TextProvider
@@ -24,6 +26,11 @@ fun IExecutionSource.hasPermission(key: PermissionKey): Boolean {
     val player = player ?: return false
     val permissions = scope.get<IPermissionsApi>()
     return permissions.hasPermission(player, key)
+}
+
+fun IExecutionSource.canConfigureGame(): Boolean {
+    return hasPermission(Permission.CONFIGURE_GAME) ||
+        scope.get<BingoConfig>().allowNonOpGameConfiguration
 }
 
 fun IExecutionSource.hasLobby(): Boolean {

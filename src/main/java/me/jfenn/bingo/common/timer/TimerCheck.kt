@@ -2,11 +2,13 @@ package me.jfenn.bingo.common.timer
 
 import me.jfenn.bingo.common.event.ScopedEvents
 import me.jfenn.bingo.common.game.GameEndReason
+import me.jfenn.bingo.common.game.GamePausePolicy
 import me.jfenn.bingo.common.game.GameService
 import me.jfenn.bingo.common.options.BingoOptions
 import me.jfenn.bingo.common.scope.BingoComponent
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
+import me.jfenn.bingo.platform.IPlayerManager
 import me.jfenn.bingo.common.utils.minus
 import me.jfenn.bingo.common.utils.seconds
 import org.slf4j.Logger
@@ -21,6 +23,7 @@ internal class TimerCheck(
     private val state: BingoState,
     private val options: BingoOptions,
     private val gameService: GameService,
+    private val playerManager: IPlayerManager,
     private val log: Logger,
 ) : BingoComponent() {
 
@@ -35,19 +38,26 @@ internal class TimerCheck(
             if (state.state != GameState.PLAYING) return@onGameTick
 
             val now = Instant.now()
+            val pausedForNoPlayers = GamePausePolicy.shouldPauseForNoPlayers(
+                state = state.state,
+                onlinePlayerCount = playerManager.getPlayers().size,
+            )
 
             // if significant time has elapsed since the last update, the game might have been paused/offline...
             state.updatedAt
                 ?.let { lastUpdate -> now - lastUpdate }
                 // assumes the server achieves at least 1tps, or onGameTick is called more than once per second
-                ?.takeIf { it > 1.seconds }
+                ?.takeIf { pausedForNoPlayers || it > 1.seconds }
                 ?.let { pauseDuration ->
-                    log.info("Game was inactive for $pauseDuration - updating timer")
+                    if (pauseDuration > 1.seconds) {
+                        log.info("Game was inactive for $pauseDuration - updating timer")
+                    }
                     state.timeOffline += pauseDuration
                 }
 
             // set the last updated timestamp
             state.updatedAt = now
+            if (pausedForNoPlayers) return@onGameTick
 
             val duration = state.ingameDuration() ?: return@onGameTick
             val timeLimit = options.timeLimit

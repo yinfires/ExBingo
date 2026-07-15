@@ -28,6 +28,7 @@ import me.jfenn.bingo.client.integrations.SimpleVoiceChatHudCompat
 import me.jfenn.bingo.client.integrations.YetAnotherConfigLibIntegration
 import me.jfenn.bingo.client.integrations.jei.IJeiApi
 import me.jfenn.bingo.client.integrations.jei.IJeiApiFactory
+import me.jfenn.bingo.client.integrations.xaero.XaeroCacheCleanupState
 import me.jfenn.bingo.client.integrations.xaero.XaeroCacheCleaner
 import me.jfenn.bingo.client.integrations.xaero.XaeroMapResetter
 import org.koin.core.module.dsl.createdAtStart
@@ -66,6 +67,7 @@ val commonClientModule = module {
     singleOf(::CompassHudCompat) withOptions { createdAtStart() }
     singleOf(::SimpleVoiceChatHudCompat) withOptions { createdAtStart() }
 
+    singleOf(::XaeroCacheCleanupState) withOptions { createdAtStart() }
     singleOf(::XaeroCacheCleaner) withOptions { createdAtStart() }
     singleOf(::XaeroMapResetter) withOptions { createdAtStart() }
 

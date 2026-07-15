@@ -35,11 +35,6 @@ internal class ResetService(
     private val serverTaskExecutor: IExecutors.IServerTaskExecutor,
     private val log: Logger,
 ) {
-    private companion object {
-        const val DYNAMIC_WORLD_RECREATE_ON_RESET_PROPERTY = "exbingo.dynamicWorldRecreateOnReset"
-        const val DYNAMIC_WORLD_RECREATE_ON_RESET_DEFAULT = true
-    }
-
     fun resetGame() {
         if (!state.isLobbyMode) {
             error("This shouldn't be happening. Tell fennifith to stop writing bad code.")
@@ -108,8 +103,28 @@ internal class ResetService(
                     for (player in playerManager.getPlayers()) {
                         player.resyncClientState(syncPosition = true)
                     }
+                    requestPostResetGc()
                 }
             }
+        }
+    }
+
+    private fun requestPostResetGc() {
+        val runtime = Runtime.getRuntime()
+        val beforeUsed = runtime.totalMemory() - runtime.freeMemory()
+        log.info(
+            "[Reset] Requesting post-reset GC (heapUsedBefore={} MiB, heapMax={} MiB)",
+            beforeUsed / BYTES_PER_MIB,
+            runtime.maxMemory() / BYTES_PER_MIB,
+        )
+        System.gc()
+        serverTaskExecutor.executeNextTick {
+            val afterUsed = runtime.totalMemory() - runtime.freeMemory()
+            log.info(
+                "[Reset] Post-reset GC check (heapUsedAfter={} MiB, heapMax={} MiB)",
+                afterUsed / BYTES_PER_MIB,
+                runtime.maxMemory() / BYTES_PER_MIB,
+            )
         }
     }
 
@@ -120,6 +135,12 @@ internal class ResetService(
         val raw = System.getProperty(DYNAMIC_WORLD_RECREATE_ON_RESET_PROPERTY)
             ?: return DYNAMIC_WORLD_RECREATE_ON_RESET_DEFAULT
         return raw.toBoolean()
+    }
+
+    private companion object {
+        const val DYNAMIC_WORLD_RECREATE_ON_RESET_PROPERTY = "exbingo.dynamicWorldRecreateOnReset"
+        const val DYNAMIC_WORLD_RECREATE_ON_RESET_DEFAULT = true
+        const val BYTES_PER_MIB = 1024 * 1024
     }
 
 }

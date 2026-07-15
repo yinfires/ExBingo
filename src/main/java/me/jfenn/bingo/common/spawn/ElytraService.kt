@@ -4,7 +4,9 @@ import me.jfenn.bingo.common.NBT_BINGO_IGNORE
 import me.jfenn.bingo.common.NBT_BINGO_KEEP
 import me.jfenn.bingo.common.NBT_BINGO_VANISH
 import me.jfenn.bingo.platform.IPlayerHandle
+import me.jfenn.bingo.platform.item.IItemStack
 import me.jfenn.bingo.platform.item.IItemStackFactory
+import net.minecraft.world.item.Item
 import net.minecraft.world.item.Items
 
 class ElytraService(
@@ -16,8 +18,11 @@ class ElytraService(
      * Only runs if config.isElytra is true
      */
     fun giveElytra(player: IPlayerHandle) {
-        val hasElytra = player.allHeldStacks()
-            .any { it.item == Items.ELYTRA && it.hasCustomTag(NBT_BINGO_VANISH) }
+        val bingoEquipment = player.allHeldStacks()
+            .filter { it.hasCustomTag(NBT_BINGO_VANISH) }
+            .groupBy { it.item }
+
+        val hasElytra = bingoEquipment.has(Items.ELYTRA)
 
         if (!hasElytra) {
             // insert elytra in armor slot
@@ -33,10 +38,7 @@ class ElytraService(
         }
 
         // also give rocket
-        val rocketStack = player.allHeldStacks()
-            .find {
-                it.item == Items.FIREWORK_ROCKET && it.hasCustomTag(NBT_BINGO_VANISH)
-            }
+        val rocketStack = bingoEquipment[Items.FIREWORK_ROCKET]?.firstOrNull()
 
         if (rocketStack != null && rocketStack.count < 2) {
             rocketStack.count = 2
@@ -52,6 +54,10 @@ class ElytraService(
                 }
             )
         }
+    }
+
+    private fun Map<Item, List<IItemStack>>.has(item: Item): Boolean {
+        return this[item]?.isNotEmpty() == true
     }
 
     fun takeElytra(player: IPlayerHandle) {

@@ -1,6 +1,7 @@
 package me.jfenn.bingo.common.game
 
 import me.jfenn.bingo.common.Permission
+import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.map.CardViewService
 import me.jfenn.bingo.common.options.*
 import me.jfenn.bingo.common.state.BingoState
@@ -20,6 +21,7 @@ internal class GameResumeService(
     private val options: BingoOptions,
     private val optionsService: OptionsService,
     private val cardViewService: CardViewService,
+    private val config: BingoConfig,
     private val permissions: IPermissionsApi,
     private val playerManager: IPlayerManager,
     private val serverWorldFactory: IServerWorldFactory,
@@ -28,7 +30,8 @@ internal class GameResumeService(
 
     fun isResumeAvailable(player: IPlayerHandle?): Boolean {
         val hasPermission = player?.let {
-            permissions.hasPermission(it, Permission.CONFIGURE_GAME)
+            permissions.hasPermission(it, Permission.CONFIGURE_GAME) ||
+                config.allowNonOpGameConfiguration
         } ?: true
 
         return state.isLobbyMode &&

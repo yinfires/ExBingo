@@ -1,7 +1,6 @@
 package me.jfenn.bingo.common.commands
 
 import me.jfenn.bingo.common.LOBBY_WORLD_ID
-import me.jfenn.bingo.common.Permission
 import me.jfenn.bingo.common.event.ScopedEvents
 import me.jfenn.bingo.common.event.model.OptionsChangedEvent
 import me.jfenn.bingo.common.options.*
@@ -20,7 +19,7 @@ class BingoOptionsCommands(
     private val eventBus: IEventBus,
 ) : BingoComponent() {
 
-    private fun IExecutionSource.hasConfigureGame() = hasState(GameState.PREGAME, GameState.PLAYING) && hasPermission(Permission.CONFIGURE_GAME)
+    private fun IExecutionSource.hasConfigureGame() = hasState(GameState.PREGAME, GameState.PLAYING) && canConfigureGame()
 
     private fun IExecutionContext.setGoal(goal: BingoGoal) {
         scope.get<OptionsService>().setGoal(
@@ -119,7 +118,7 @@ class BingoOptionsCommands(
                 literal("consume_items") {
                     requires {
                         hasState(GameState.PREGAME, GameState.PLAYING)
-                                && hasPermission(Permission.CONFIGURE_GAME)
+                                && canConfigureGame()
                                 && hasLobby()
                     }
                     executesToggle { toggleCardMode(BingoCardOptions::isConsumeItemsMode, it) }

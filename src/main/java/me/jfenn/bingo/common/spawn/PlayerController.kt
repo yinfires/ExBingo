@@ -7,6 +7,7 @@ import me.jfenn.bingo.common.lobbyWorld
 import me.jfenn.bingo.common.map.CardViewService
 import me.jfenn.bingo.common.map.MapItemService
 import me.jfenn.bingo.common.options.BingoOptions
+import me.jfenn.bingo.common.performance.TickWorkPolicy
 import me.jfenn.bingo.common.scope.BingoComponent
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
@@ -539,7 +540,7 @@ internal class PlayerController(
             }
         }
 
-        events.onGameTick {
+        events.onGameTick { event ->
             for (player in playerManager.getPlayers()) {
                 // If the player has just joined, update their gamemode
                 val playerUuid = player.uuid
@@ -552,14 +553,23 @@ internal class PlayerController(
                 if (state.isLobbyMode && state.state == GameState.PREGAME && player.foodLevel < 10) {
                     player.foodLevel = 10
                 }
-                if (state.isLobbyMode && state.state == GameState.PREGAME) {
+                if (
+                    state.isLobbyMode &&
+                    state.state == GameState.PREGAME &&
+                    TickWorkPolicy.shouldRunInventoryMaintenance(event.ticks, offsetTicks = 3)
+                ) {
                     enforceEnigmaticLegacyLobbyStarterRelics(player)
                 }
 
                 if (state.state == GameState.PLAYING && player.health > 0f && !player.isSpectator) {
                     // if elytra mode is configured, give the player an elytra
-                    if (options.isElytra && teamService.isPlaying(player))
+                    if (
+                        options.isElytra &&
+                        teamService.isPlaying(player) &&
+                        TickWorkPolicy.shouldRefreshElytra(event.ticks)
+                    ) {
                         elytraService.giveElytra(player)
+                    }
 
                     // if the player is spectating in adventure mode,
                     // they should be able to fly

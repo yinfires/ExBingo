@@ -18,4 +18,9 @@ enum class GameState(
         LOADING, COUNTDOWN, PLAYING -> true
         else -> false
     }
+
+    val isActiveGame get() = when (this) {
+        STARTING, PRELOADING, LOADING, COUNTDOWN, PLAYING -> true
+        else -> false
+    }
 }

@@ -3,6 +3,7 @@ package me.jfenn.bingo.common.menu
 import me.jfenn.bingo.platform.text.IText
 import me.jfenn.bingo.common.Permission
 import me.jfenn.bingo.common.Sounds
+import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.event.InteractionEntityEvents
 import me.jfenn.bingo.common.event.model.OptionsChangedEvent
 import me.jfenn.bingo.common.menu.tooltips.TooltipState
@@ -33,7 +34,8 @@ internal fun MenuComponent.registerButtonInteraction(
     onClick: (player: IPlayerHandle) -> Unit,
 ) {
     val actualPermissionGetter = permissionGetter ?: {
-        permissions.hasPermission(it, Permission.CONFIGURE_GAME)
+        permissions.hasPermission(it, Permission.CONFIGURE_GAME) ||
+            koinScope.get<BingoConfig>().allowNonOpGameConfiguration
     }
 
     val offset = -width / 2.0

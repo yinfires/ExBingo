@@ -1,6 +1,5 @@
 package me.jfenn.bingo.common.commands
 
-import me.jfenn.bingo.common.Permission
 import me.jfenn.bingo.common.card.CardService
 import me.jfenn.bingo.common.card.objective.BingoObjective
 import me.jfenn.bingo.common.card.objective.BingoObjectiveManager
@@ -49,7 +48,7 @@ class BingoCardCommand(
         }
     }
 
-    private fun IExecutionSource.hasConfigureGame() = hasState(GameState.PREGAME, GameState.PLAYING) && hasPermission(Permission.CONFIGURE_GAME)
+    private fun IExecutionSource.hasConfigureGame() = hasState(GameState.PREGAME, GameState.PLAYING) && canConfigureGame()
     private val IExecutionContext.state get() = scope.get<BingoState>()
     private val IExecutionContext.cardService get() = scope.get<CardService>()
     private val IExecutionContext.cardViewService get() = scope.get<CardViewService>()

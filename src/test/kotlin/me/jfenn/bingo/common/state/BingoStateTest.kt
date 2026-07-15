@@ -66,4 +66,19 @@ class BingoStateTest {
         assertTrue(state.restoreOptions.isEmpty())
         assertEquals(Duration.ofMinutes(2), state.options.timeLimit)
     }
+
+    @Test
+    fun `active game includes startup loading countdown and playing states`() {
+        val activeStates = setOf(
+            GameState.STARTING,
+            GameState.PRELOADING,
+            GameState.LOADING,
+            GameState.COUNTDOWN,
+            GameState.PLAYING,
+        )
+
+        for (state in GameState.entries) {
+            assertEquals(state in activeStates, state.isActiveGame, "active game policy for $state")
+        }
+    }
 }

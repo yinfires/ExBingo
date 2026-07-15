@@ -72,6 +72,10 @@ data class BingoConfig(
     // instead of the vanilla map/card behavior
     var supportClientHud: Boolean = true,
 
+    // when true, players without OP/configure-game permission may use the
+    // regular game option commands and lobby menu controls.
+    var allowNonOpGameConfiguration: Boolean = false,
+
     // starts the game after the time limit - reduced when players vote /ready
     val startWhenReadySeconds: Int? = 600,
     val startWhenReadyWaitsForTeams: Boolean = true,

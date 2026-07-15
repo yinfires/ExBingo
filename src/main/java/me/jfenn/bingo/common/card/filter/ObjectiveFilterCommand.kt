@@ -1,9 +1,8 @@
 package me.jfenn.bingo.common.card.filter
 
 import me.jfenn.bingo.platform.text.TextAction
-import me.jfenn.bingo.common.Permission
+import me.jfenn.bingo.common.commands.canConfigureGame
 import me.jfenn.bingo.common.card.tag.TagService
-import me.jfenn.bingo.common.commands.hasPermission
 import me.jfenn.bingo.common.commands.hasState
 import me.jfenn.bingo.common.event.model.OptionsChangedEvent
 import me.jfenn.bingo.common.options.OptionsService
@@ -70,7 +69,7 @@ class ObjectiveFilterCommand(
         commandManager.register("bingo") {
             literal("filter") {
                 requires {
-                    hasState(GameState.PREGAME, GameState.PLAYING) && hasPermission(Permission.CONFIGURE_GAME)
+                    hasState(GameState.PREGAME, GameState.PLAYING) && canConfigureGame()
                 }
 
                 string("filter", { listPresets() + suggestFilterList(it) }, true) { filterArg ->

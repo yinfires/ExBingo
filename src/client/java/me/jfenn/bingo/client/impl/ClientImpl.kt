@@ -52,6 +52,9 @@ class ClientImpl : IClient {
     override val executor: Executor = client
 
     inner class PlayerImpl : IClientPlayer {
+        override val isSpectator: Boolean
+            get() = client.player?.isSpectator ?: false
+
         override fun sendHotbarMessage(text: IText) {
             client.player?.displayClientMessage(text.value, true)
         }

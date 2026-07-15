@@ -3,6 +3,7 @@ package me.jfenn.bingo.client.impl
 import com.mojang.blaze3d.platform.InputConstants
 import me.jfenn.bingo.client.platform.IKeyBinding
 import me.jfenn.bingo.client.platform.IKeyBindingManager
+import me.jfenn.bingo.impl.TextImpl
 import net.minecraft.client.KeyMapping
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
 
@@ -30,6 +31,9 @@ class KeyBindingManager : IKeyBindingManager {
     class KeyBindingImpl(
         private val binding: KeyMapping,
     ) : IKeyBinding {
+        override val displayName
+            get() = TextImpl(binding.translatedKeyMessage.copy())
+
         override fun isPressed(): Boolean = binding.isDown
         override fun wasPressed(): Boolean = binding.consumeClick()
     }

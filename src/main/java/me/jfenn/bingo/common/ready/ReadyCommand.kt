@@ -1,7 +1,6 @@
 package me.jfenn.bingo.common.ready
 
-import me.jfenn.bingo.common.Permission
-import me.jfenn.bingo.common.commands.hasPermission
+import me.jfenn.bingo.common.commands.canConfigureGame
 import me.jfenn.bingo.common.event.model.OptionsChangedEvent
 import me.jfenn.bingo.common.text.TextProvider
 import me.jfenn.bingo.generated.StringKey
@@ -28,7 +27,7 @@ class ReadyCommand(
             }
 
             literal("cancel") {
-                requires { hasPermission(Permission.CONFIGURE_GAME) }
+                requires { canConfigureGame() }
                 executes {
                     val timerState = scope.get<ReadyTimerState>()
 

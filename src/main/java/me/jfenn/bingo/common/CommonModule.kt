@@ -47,6 +47,7 @@ import me.jfenn.bingo.common.menu.RuntimeLobbyController
 import me.jfenn.bingo.common.menu.tooltips.TooltipController
 import me.jfenn.bingo.common.menu.tooltips.TooltipState
 import me.jfenn.bingo.common.options.OptionsService
+import me.jfenn.bingo.common.performance.LongGamePerformanceController
 import me.jfenn.bingo.common.ready.ReadyCommand
 import me.jfenn.bingo.common.ready.ReadyController
 import me.jfenn.bingo.common.ready.ReadyService
@@ -363,6 +364,7 @@ val commonModule = module {
         scopedOf(::OfflinePlayerCache)
         scopedOf(::TeamService) bind ResetTeamService::class
         scopedOf(::TeamChestService)
+        scopedOf(::SpectatorTeamJoinService)
         scopedOf(::TeamController)
         scopedOf(::TeamChestController)
 
@@ -373,6 +375,7 @@ val commonModule = module {
         scopedOf(::WaitUntilLoadedController)
 
         scopedOf(::ResetOnLeaveController)
+        scopedOf(::LongGamePerformanceController)
 
         scopedOf(::CommandTreeHandler)
 
@@ -475,6 +478,7 @@ fun Scope.commonInit() {
     get<StatsSyncController>()
 
     get<TeamController>()
+    get<SpectatorTeamJoinService>()
     get<TeamChestController>()
 
     get<CountdownController>()
@@ -483,6 +487,7 @@ fun Scope.commonInit() {
     get<WaitUntilLoadedController>()
 
     get<ResetOnLeaveController>()
+    get<LongGamePerformanceController>()
 
     get<CommandTreeHandler>()
 

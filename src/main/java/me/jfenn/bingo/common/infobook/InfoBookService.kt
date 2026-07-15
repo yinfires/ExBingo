@@ -60,7 +60,7 @@ internal class InfoBookService(
                 ).formatted(ChatFormatting.GRAY)
             )
             .also {
-                if (permissions.hasPermission(player, Permission.CONFIGURE_GAME)) {
+                if (canConfigureGame(player)) {
                     it.append("\n\n").append(
                         when {
                             state.isLobbyMode -> text.string(StringKey.IntroUseConfigMenu)
@@ -82,7 +82,7 @@ internal class InfoBookService(
                 )
             )
             .also {
-                if (!permissions.hasPermission(player, Permission.CONFIGURE_GAME)) {
+                if (!canConfigureGame(player)) {
                     it.append("\n\n").append(text.string(StringKey.IntroChangePlayerSettings))
                 }
             }
@@ -167,7 +167,7 @@ internal class InfoBookService(
                 )
             )
             .also {
-                if (permissions.hasPermission(player, Permission.CONFIGURE_GAME)) {
+                if (canConfigureGame(player)) {
                     it.append("\n\n").append(
                         text.string(
                             StringKey.IntroTeamFeaturesOps,
@@ -178,6 +178,10 @@ internal class InfoBookService(
                     )
                 }
             }
+
+    private fun canConfigureGame(player: IPlayerHandle): Boolean =
+        config.allowNonOpGameConfiguration ||
+            permissions.hasPermission(player, Permission.CONFIGURE_GAME)
 
     private fun toggleText(
         value: Boolean,

@@ -49,8 +49,8 @@ public abstract class MinecraftServerUnsafeSkipCloseMixin {
             return true;
         }
 
-        // if a game is running, the server should restart normally to save all world data
-        return MinecraftServerMixinHandler.INSTANCE.isGamePlaying(server);
+        // if a game has started, the server should restart normally to save all world data
+        return MinecraftServerMixinHandler.INSTANCE.hasActiveGame(server);
     }
 
     @Inject(at = @At(value = "HEAD"), method = "stopServer", cancellable = true)

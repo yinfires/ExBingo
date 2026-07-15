@@ -1,9 +1,8 @@
 package me.jfenn.bingo.common.game
 
 import me.jfenn.bingo.platform.text.IText
-import me.jfenn.bingo.common.Permission
+import me.jfenn.bingo.common.commands.canConfigureGame
 import me.jfenn.bingo.common.commands.formatWarning
-import me.jfenn.bingo.common.commands.hasPermission
 import me.jfenn.bingo.common.commands.hasState
 import me.jfenn.bingo.common.scope.BingoComponent
 import me.jfenn.bingo.common.state.BingoState
@@ -43,7 +42,7 @@ class GameCommands(
         commandManager.register("bingo") {
             literal("start") {
                 requires {
-                    hasState(GameState.PREGAME) && hasPermission(Permission.CONFIGURE_GAME)
+                    hasState(GameState.PREGAME) && canConfigureGame()
                 }
 
                 executes { start(ignoreWarnings = false) }
@@ -55,7 +54,7 @@ class GameCommands(
 
             literal("end") {
                 requires {
-                    hasState(GameState.PLAYING) && hasPermission(Permission.CONFIGURE_GAME)
+                    hasState(GameState.PLAYING) && canConfigureGame()
                 }
 
                 executes {

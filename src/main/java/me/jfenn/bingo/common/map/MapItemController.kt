@@ -2,6 +2,8 @@ package me.jfenn.bingo.common.map
 
 import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.event.ScopedEvents
+import me.jfenn.bingo.common.event.model.TeamChangedEvent
+import me.jfenn.bingo.common.performance.TickWorkPolicy
 import me.jfenn.bingo.common.scope.BingoComponent
 import me.jfenn.bingo.common.state.BingoState
 import me.jfenn.bingo.common.state.GameState
@@ -106,7 +108,49 @@ internal class MapItemController(
             .forEach { view -> view.mutate { it.count = 0 } }
     }
 
+    private fun updateMapItems(player: IPlayerHandle) {
+        val playerTeam = teamService.getPlayerTeam(player)
+        val canHaveCards = player.isAlive && !player.isSpectator
+
+        if (canHaveCards) {
+            if (cardViewService.isViewingSpectatorCards(player)) {
+                if (state.isLobbyMode)
+                    giveSpectatorMapItems(player)
+            } else if (playerTeam != null && cardViewService.isViewingTeamCard(player, playerTeam)) {
+                // give player a new map, if they don't have one?
+                giveMapCardItem(player, playerTeam)
+            }
+        }
+
+        if (canHaveCards && cardViewService.isViewingPreviewCard(player)) {
+            giveMapCardItem(player, null)
+        } else {
+            removePreviewCardItem(player)
+        }
+
+        // If the player is using the client-side hud, make sure they don't have any map items
+        // (this might be false when the player is first connecting)
+        if (cardViewService.supportsCardHud(player))
+            removeAllMapItems(player)
+    }
+
     init {
+        events.onPlayerChannelRegister { (player) ->
+            updateMapItems(player)
+        }
+
+        eventBus.register(TeamChangedEvent) { (player) ->
+            updateMapItems(player)
+        }
+
+        events.onEnter(GameState.PREGAME) {
+            playerManager.getPlayers().forEach(::updateMapItems)
+        }
+
+        events.onEnter(GameState.PLAYING) {
+            playerManager.getPlayers().forEach(::updateMapItems)
+        }
+
         events.onEnter(GameState.POSTGAME) {
             for (player in playerManager.getPlayers()) {
                 // remove any existing maps in the player's inventory
@@ -129,30 +173,12 @@ internal class MapItemController(
         }
 
         eventBus.register(TickEvent.Start) {
+            if (!TickWorkPolicy.shouldRunInventoryMaintenance(it.ticks, offsetTicks = 1)) {
+                return@register
+            }
+
             for (player in playerManager.getPlayers()) {
-                val playerTeam = teamService.getPlayerTeam(player)
-                val canHaveCards = player.isAlive && !player.isSpectator
-
-                if (canHaveCards) {
-                    if (cardViewService.isViewingSpectatorCards(player)) {
-                        if (state.isLobbyMode)
-                            giveSpectatorMapItems(player)
-                    } else if (playerTeam != null && cardViewService.isViewingTeamCard(player, playerTeam)) {
-                        // give player a new map, if they don't have one?
-                        giveMapCardItem(player, playerTeam)
-                    }
-                }
-
-                if (canHaveCards && cardViewService.isViewingPreviewCard(player)) {
-                    giveMapCardItem(player, null)
-                } else {
-                    removePreviewCardItem(player)
-                }
-
-                // If the player is using the client-side hud, make sure they don't have any map items
-                // (this might be false when the player is first connecting)
-                if (cardViewService.supportsCardHud(player))
-                    removeAllMapItems(player)
+                updateMapItems(player)
             }
         }
     }

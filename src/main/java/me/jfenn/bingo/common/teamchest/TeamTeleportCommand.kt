@@ -1,7 +1,6 @@
 package me.jfenn.bingo.common.teamchest
 
-import me.jfenn.bingo.common.Permission
-import me.jfenn.bingo.common.commands.hasPermission
+import me.jfenn.bingo.common.commands.canConfigureGame
 import me.jfenn.bingo.common.config.BingoConfig
 import me.jfenn.bingo.common.config.ConfigService
 import me.jfenn.bingo.common.scope.BingoComponent
@@ -91,7 +90,7 @@ internal class TeamTeleportCommand(
         commandManager.register("teamtp") { teamTeleportRoot("teamtp") }
         commandManager.register("ttp") { teamTeleportRoot("ttp") }
         commandManager.register("tptoggle") {
-            requires { hasPermission(Permission.CONFIGURE_GAME) }
+            requires { canConfigureGame() }
             executes { toggleTeamTeleport() }
         }
     }
