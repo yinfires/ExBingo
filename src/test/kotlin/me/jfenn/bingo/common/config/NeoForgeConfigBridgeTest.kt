@@ -8,7 +8,6 @@ import me.jfenn.bingo.common.card.filter.ObjectiveFilterList
 import me.jfenn.bingo.common.card.tierlist.TierLabel
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.attribute.FileTime
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmErasure
@@ -103,35 +102,40 @@ class NeoForgeConfigBridgeTest {
     }
 
     @Test
-    fun `startup config source keeps newer or equal legacy json authoritative`() {
-        val time = FileTime.fromMillis(1_000)
-
+    fun `startup config source keeps legacy json authoritative when it exists`() {
         assertEquals(
             NeoForgeConfigBridge.StartupConfigSource.LEGACY_JSON,
-            NeoForgeConfigBridge.chooseStartupConfigSource(time, time),
-        )
-        assertEquals(
-            NeoForgeConfigBridge.StartupConfigSource.LEGACY_JSON,
-            NeoForgeConfigBridge.chooseStartupConfigSource(FileTime.fromMillis(2_000), time),
+            NeoForgeConfigBridge.chooseStartupConfigSource(legacyJsonExists = true),
         )
     }
 
     @Test
-    fun `startup config source only lets newer toml override legacy json`() {
-        val legacyTime = FileTime.fromMillis(1_000)
-        val tomlTime = FileTime.fromMillis(2_000)
+    fun `startup config source falls back to neoforge toml only without legacy json`() {
+        assertEquals(
+            NeoForgeConfigBridge.StartupConfigSource.NEOFORGE_TOML,
+            NeoForgeConfigBridge.chooseStartupConfigSource(legacyJsonExists = false),
+        )
+    }
 
-        assertEquals(
-            NeoForgeConfigBridge.StartupConfigSource.NEOFORGE_TOML,
-            NeoForgeConfigBridge.chooseStartupConfigSource(legacyTime, tomlTime),
-        )
-        assertEquals(
-            NeoForgeConfigBridge.StartupConfigSource.NEOFORGE_TOML,
-            NeoForgeConfigBridge.chooseStartupConfigSource(null, tomlTime),
-        )
+    @Test
+    fun `startup reload keeps legacy json authoritative while fml load is incomplete`() {
         assertEquals(
             NeoForgeConfigBridge.StartupConfigSource.LEGACY_JSON,
-            NeoForgeConfigBridge.chooseStartupConfigSource(legacyTime, null),
+            NeoForgeConfigBridge.chooseReloadConfigSource(
+                legacyJsonExists = true,
+                startupConfigLoadComplete = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `runtime reload imports neoforge toml after fml load completes`() {
+        assertEquals(
+            NeoForgeConfigBridge.StartupConfigSource.NEOFORGE_TOML,
+            NeoForgeConfigBridge.chooseReloadConfigSource(
+                legacyJsonExists = true,
+                startupConfigLoadComplete = true,
+            ),
         )
     }
 
