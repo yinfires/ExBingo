@@ -210,21 +210,46 @@ internal class CardService(
     }
 
     fun replaceEntry(card: BingoCard, x: Int, y: Int, objectiveId: String) {
-        // Make sure that the objective exists
-        val objective = objectiveManager.find(objectiveId, CardGeneratorState.DEFAULT)
+        val objectiveMap = createObjectives(null, objectiveId, CardGeneratorState.DEFAULT)
             ?: throw IllegalArgumentException("Could not find objective '$objectiveId'")
 
-        replaceEntry(card, x, y, objective)
+        replaceEntry(
+            card = card,
+            x = x,
+            y = y,
+            entry = BingoCardEntry(
+                objectiveId = objectiveId,
+                tier = null,
+                source = null,
+            ),
+            replacementObjectives = objectiveMap,
+        )
     }
 
     fun replaceEntry(card: BingoCard, x: Int, y: Int, objective: BingoObjective) {
+        replaceEntry(
+            card = card,
+            x = x,
+            y = y,
+            entry = BingoCardEntry(
+                objectiveId = objective.id,
+                tier = null,
+                source = null,
+            ),
+            replacementObjectives = mapOf(objective.id to objective),
+        )
+    }
+
+    private fun replaceEntry(
+        card: BingoCard,
+        x: Int,
+        y: Int,
+        entry: BingoCardEntry,
+        replacementObjectives: Map<String, BingoObjective>,
+    ) {
         // Overwrite the entry being replaced
         val entries = card.entries.toMutableList()
-        entries[x + y * 5] = BingoCardEntry(
-            objectiveId = objective.id,
-            tier = null,
-            source = null,
-        )
+        entries[x + y * 5] = entry
 
         // Re-build the objectives map (but we don't need to check for conflicts)
         val objectives = mutableMapOf<String, BingoObjective>()
@@ -241,7 +266,7 @@ internal class CardService(
             }
         }
 
-        objectives[objective.id] = objective
+        objectives.putAll(replacementObjectives)
 
         assignTileNames(entries)
         // Set the card

@@ -31,6 +31,10 @@ internal class AdvancementObjectiveManager(
         return advancementManager.listAdvancements(server) + dataKeys
     }
 
+    override fun listTyped(): Iterable<String> {
+        return list().map { "advancement!$it" }
+    }
+
     override fun listExcludedIds(): Iterable<String> {
         val players = objectiveService.getAllTeamPlayers()
             .map { (_, player) -> player }

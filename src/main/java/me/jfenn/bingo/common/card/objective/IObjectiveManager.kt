@@ -8,6 +8,7 @@ interface IObjectiveManager {
      * List all objective ids available
      */
     fun list(): Iterable<String>
+    fun listTyped(): Iterable<String> = emptyList()
 
     /**
      * List objectives that should be excluded when generating a new card

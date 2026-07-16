@@ -207,7 +207,7 @@ class BingoCardCommand(
                     string("tile", { CARD_KEYS }) { tileArg ->
                         string(
                             name = "objective",
-                            suggestions = { scope.get<ObjectiveListService>().getAllObjectives() },
+                            suggestions = { scope.get<ObjectiveListService>().getCardSetObjectives() },
                             greedy = true,
                         ) { objectiveArg ->
                             executes {

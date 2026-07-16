@@ -37,6 +37,10 @@ internal class ItemObjectiveManager(
         return itemStackFactory.listItems(server) + dataKeys
     }
 
+    override fun listTyped(): Iterable<String> {
+        return list().map { "item!$it" }
+    }
+
     override fun listExcludedIds(): Iterable<String> {
         return objectiveService.getAllTeamPlayers()
             .flatMap { (_, player) -> player.allHeldStacks() }
