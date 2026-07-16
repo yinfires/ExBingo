@@ -30,6 +30,69 @@ Each release should include:
 
 ——————
 
+## 1.0.6 - 2026-07-16
+
+- Minecraft: 1.21.1
+- Mod Loader: NeoForge 21.1.234
+- License: LGPL-3.0-only
+- Release Type: Feature update
+
+### 中文更新日志
+
+#### 新增内容
+
+- 新增长对局性能维护。对局进行中实体数量超过阈值后，服务端会按 `server.performanceCleanup` 配置定期清理远离玩家的非持久实体、掉落物、投射物和普通生物，同时保留玩家、坐骑 / 乘客、自定义命名、持久、无敌、拴绳实体、ExBingo 实体和受保护命名空间。
+- 新增 `allowNonOpGameConfiguration` 配置。启用后，非 OP 玩家也可以使用常规游戏配置指令和大厅菜单中的游戏设置控件。
+- 新增对局中旁观者申请加入队伍流程。无队伍旁观者可在对局进行时使用 `/teamchest` / `/tc`，或在安装客户端时按队伍箱按键打开队伍选择；有在线成员的队伍需要队员点击同意，空队伍可直接加入。
+- 新增玩家向自定义棋盘教程，说明如何编写 `*.tierlist.json`、添加 `itemFilterPresets`、使用 `item!` / `advancement!` 类型前缀，以及通过资源包设置棋盘显示名。
+
+#### 调整内容
+
+- 优化长局服务器性能。物品目标计分、地图维护、介绍书维护、大厅遗物清理和鞘翅补发等周期性工作现在会用更低频率或事件驱动方式运行，减少多人模组对局中的 TPS 抖动，同时保持计分反馈接近即时。
+- 对局进行中所有玩家离线时，`PLAYING` 对局会暂停计时、物品检查、胜利判定和僵局判定，避免服务器无人在线时自动结束比赛；`POSTGAME` 的自动下一局 / 重置行为不受影响。
+
+#### 修复内容
+
+- 修复活跃对局中关服或重启后，服务器可能恢复成 `PREGAME`、但世界仍停留在对局地形中的问题。ExBingo 现在会在状态变化和关服流程中写入对局状态，并用临时文件、校验和备份降低保存文件损坏风险。
+- 修复在 `STARTING`、`PRELOADING`、`LOADING` 或 `COUNTDOWN` 阶段关闭专用服务器时，已开始的对局可能未被当作活跃对局保护，进而走到错误的大厅 / 重置清理路径的问题。
+- 修复 ExBingo 更新或迁移配置时可能删除、覆盖或清理 `config/exbingo/tierlists/` 下玩家自制棋盘的问题。自定义 tierlist 现在会在旧配置迁移、同名文件移动和资源缺失同步时被保留。
+- 修复 NeoForge 配置桥在启动阶段可能用旧 TOML 覆盖 `config/exbingo/config.json` 的问题，并保留 JSON 中手动添加的 `itemFilterPresets`；游戏完全加载后，NeoForge 配置界面的运行时修改仍会正常同步回 JSON。
+- 修复自定义棋盘中 `item!namespace:path` 与 `advancement!namespace:path` 类型限制可能丢失、同 ID 物品和进度被合并、或生成 / 计分时退回错误目标类型的问题。
+
+#### 兼容性
+
+- 修复对局中断线重连可能错误清理当前轮 Xaero 小地图 / 世界地图本地缓存的问题。现在只有客户端已回到大厅后断开连接，才会清理上一轮地图缓存与路径点。
+- 清理永恒星光（Eternal Starlight）内置棋盘中的异常条目，移除无法正常作为棋盘目标的 `use_blossom_of_stars`、`gravity_pickaxe` 和 `crystallized_sand`。
+
+### English Changelog
+
+#### Added
+
+- Added long-round performance maintenance. While a round is running, the server can periodically clean up far-away non-persistent entities, item drops, projectiles, and regular mobs once the entity count passes the `server.performanceCleanup` thresholds, while preserving players, mounts / passengers, custom-named, persistent, invulnerable, leashed entities, ExBingo entities, and protected namespaces.
+- Added the `allowNonOpGameConfiguration` config option. When enabled, non-OP players can use regular game configuration commands and the game setting controls in the lobby menu.
+- Added a spectator team-join flow during active rounds. Teamless spectators can use `/teamchest` / `/tc`, or the team chest keybind when the client mod is installed, to open team selection; teams with online members require teammate approval, while empty teams can be joined directly.
+- Added a player-facing custom board tutorial covering `*.tierlist.json` files, `itemFilterPresets`, `item!` / `advancement!` type prefixes, and resource-pack display names for board presets.
+
+#### Changed
+
+- Improved long-round server performance. Item-objective scoring, map maintenance, intro book upkeep, lobby relic cleanup, elytra refreshes, and similar periodic work now run at lower frequency or from player-visible events, reducing TPS spikes in multiplayer modded rounds while keeping scoring feedback near instant.
+- Active `PLAYING` rounds now pause timers, item checks, winner checks, and stalemate checks when every player is offline, preventing matches from ending while the server is empty. `POSTGAME` automatic next-round / reset behavior is unchanged.
+
+#### Fixed
+
+- Fixed shutting down or restarting during an active round sometimes restoring the server as `PREGAME` while the world was still the active game world. ExBingo now writes game state on state changes and during shutdown, using temp-file validation and backups to reduce save corruption risk.
+- Fixed dedicated-server shutdown during `STARTING`, `PRELOADING`, `LOADING`, or `COUNTDOWN` not always being protected as an already-started round, which could route shutdown through the wrong lobby / reset cleanup path.
+- Fixed ExBingo updates or config migrations potentially deleting, overwriting, or cleaning up player-authored boards under `config/exbingo/tierlists/`. Custom tier lists are now preserved through legacy config migration, same-name moves, and missing-resource sync.
+- Fixed the NeoForge config bridge sometimes letting stale TOML overwrite `config/exbingo/config.json` during startup, and preserved JSON-added `itemFilterPresets`; after the game is fully loaded, runtime edits from the NeoForge config screen still sync back to JSON.
+- Fixed custom board `item!namespace:path` and `advancement!namespace:path` type restrictions being lost, same-ID item and advancement targets being collapsed together, or generation / scoring falling back to the wrong objective type.
+
+#### Compatibility
+
+- Fixed disconnecting and reconnecting during an active round potentially clearing the current Xaero Minimap / World Map local cache. Previous-round map caches and waypoints are now cleaned only after the client has returned to the lobby and disconnects.
+- Cleaned up the built-in Eternal Starlight board by removing invalid targets that could not be used correctly on cards: `use_blossom_of_stars`, `gravity_pickaxe`, and `crystallized_sand`.
+
+——————
+
 ## 1.0.5 - 2026-07-12
 
 - Minecraft: 1.21.1
