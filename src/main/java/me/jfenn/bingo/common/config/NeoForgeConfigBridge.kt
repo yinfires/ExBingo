@@ -1209,7 +1209,7 @@ object NeoForgeConfigBridge {
         entries: MutableList<ConfigEntry>,
     ): ModConfigSpec.BooleanValue =
         value(configPath, translationKey, comment, entries)
-            .define(listOf(tomlPath), Supplier { defaultValue() })
+            .define(tomlPathSegments(tomlPath), Supplier { defaultValue() })
 
     private fun ModConfigSpec.Builder.defineInt(
         configPath: String,
@@ -1222,7 +1222,7 @@ object NeoForgeConfigBridge {
         max: Int,
     ): ModConfigSpec.ConfigValue<Int> =
         value(configPath, translationKey, "$comment Range: $min ~ $max.", entries)
-            .define(listOf(tomlPath), Supplier { defaultValue() }, Predicate { it is Number && it.toInt() in min..max }, Int::class.java)
+            .define(tomlPathSegments(tomlPath), Supplier { defaultValue() }, Predicate { it is Number && it.toInt() in min..max }, Int::class.java)
 
     private fun ModConfigSpec.Builder.defineDouble(
         configPath: String,
@@ -1235,7 +1235,7 @@ object NeoForgeConfigBridge {
         max: Double,
     ): ModConfigSpec.ConfigValue<Double> =
         value(configPath, translationKey, "$comment Range: $min ~ $max.", entries)
-            .define(listOf(tomlPath), Supplier { defaultValue() }, Predicate { it is Number && it.toDouble() in min..max }, Double::class.java)
+            .define(tomlPathSegments(tomlPath), Supplier { defaultValue() }, Predicate { it is Number && it.toDouble() in min..max }, Double::class.java)
 
     private fun ModConfigSpec.Builder.defineString(
         configPath: String,
@@ -1249,7 +1249,7 @@ object NeoForgeConfigBridge {
     ): ModConfigSpec.ConfigValue<String> =
         value(configPath, translationKey, comment, entries)
             .define(
-                listOf(tomlPath),
+                tomlPathSegments(tomlPath),
                 Supplier { defaultValue() },
                 Predicate { it is String && (allowBlank || it.isNotBlank()) && validator(it) },
                 String::class.java,
@@ -1265,7 +1265,7 @@ object NeoForgeConfigBridge {
     ): ModConfigSpec.EnumValue<T> where T : Enum<T> =
         value(configPath, translationKey, comment, entries)
             .defineEnum(
-                listOf(tomlPath),
+                tomlPathSegments(tomlPath),
                 Supplier { defaultValue() },
                 Predicate { value ->
                     value is T || (value is String && enumValues<T>().any { it.name.equals(value, ignoreCase = true) })
@@ -1285,7 +1285,7 @@ object NeoForgeConfigBridge {
     ): ModConfigSpec.ConfigValue<List<String>> =
         value(configPath, translationKey, comment, entries)
             .defineList(
-                listOf(tomlPath),
+                tomlPathSegments(tomlPath),
                 Supplier<List<String>> { defaultValue() },
                 Supplier { "" },
                 Predicate { it is String && (allowBlank || it.isNotBlank()) && validator(it) },
@@ -1303,11 +1303,14 @@ object NeoForgeConfigBridge {
     ): ModConfigSpec.ConfigValue<List<Double>> =
         value(configPath, translationKey, "$comment Each value must be in range $min ~ $max.", entries)
             .defineList(
-                listOf(tomlPath),
+                tomlPathSegments(tomlPath),
                 Supplier<List<Double>> { defaultValue() },
                 Supplier { 0.0 },
                 Predicate { it is Number && it.toDouble() in min..max },
             ) as ModConfigSpec.ConfigValue<List<Double>>
+
+    private fun tomlPathSegments(tomlPath: String): List<String> =
+        tomlPath.split('.')
 
     private fun String.blankToNull(): String? = takeIf { it.isNotBlank() }
 

@@ -86,6 +86,31 @@ class NeoForgeConfigBridgeTest {
     }
 
     @Test
+    fun `common toml bridge writes nested experience bottle xp table`() {
+        val commentedConfigClass = Class.forName("com.electronwill.nightconfig.core.CommentedConfig")
+        val configFormatClass = Class.forName("com.electronwill.nightconfig.core.ConfigFormat")
+        val tomlFormatClass = Class.forName("com.electronwill.nightconfig.toml.TomlFormat")
+        val tomlFormat = tomlFormatClass.getMethod("instance").invoke(null)
+        val config = commentedConfigClass.getMethod("of", configFormatClass).invoke(null, tomlFormat)
+
+        val commonSpec = NeoForgeConfigBridge::class.java.getMethod("getCommonSpec").invoke(NeoForgeConfigBridge)
+        commonSpec.javaClass.getMethod("correct", commentedConfigClass).invoke(commonSpec, config)
+
+        val rootMap = config.javaClass.getMethod("valueMap").invoke(config) as Map<*, *>
+        val gameplay = rootMap["gameplay"] ?: error("Missing gameplay table in corrected config")
+        val gameplayMap = gameplay.javaClass.getMethod("valueMap").invoke(gameplay) as Map<*, *>
+        val experienceBottleXp = gameplayMap["experienceBottleXp"]
+            ?: error("Missing gameplay.experienceBottleXp table in corrected config")
+        val experienceBottleXpMap = experienceBottleXp.javaClass.getMethod("valueMap").invoke(experienceBottleXp) as Map<*, *>
+
+        assertEquals(true, experienceBottleXpMap["enabled"])
+        assertEquals(100, experienceBottleXpMap["min"])
+        assertEquals(500, experienceBottleXpMap["max"])
+        assertTrue("experienceBottleXp.enabled" !in gameplayMap.keys)
+        assertTrue(experienceBottleXpMap.isNotEmpty(), "experienceBottleXp must be a TOML table, not a dotted scalar key.")
+    }
+
+    @Test
     fun `toml bridge preserves custom json item filter presets`() {
         val everything = ObjectiveFilterList.fromString("-tedious -unobtainable")
         val custom = ObjectiveFilterList.fromString("+enigmaticlegacyplus")
